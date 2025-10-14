@@ -18,7 +18,7 @@ model Guild {
   id            String         @id
   name          String?
   users         User[]
-  reactionsMaps ReactionMap[]
+  reactionMaps  ReactionMap[]
   levelRoles    LevelRole[]
   voiceSessions VoiceSession[]
 }
@@ -29,6 +29,8 @@ model User {
   discordId String
   xp        Int    @default(0)
   level     Int    @default(0)
+
+  lastMessage DateTime? // Timestamp of the last message sent by the user
 
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
@@ -45,7 +47,7 @@ model ReactionMap {
 
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@index([messageId, emoji])
+  @@unique([messageId, emoji])
 }
 
 model LevelRole {
@@ -56,13 +58,14 @@ model LevelRole {
 
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@index([guildId, levelReq])
+  @@unique([guildId, levelReq])
 }
 
 model VoiceSession {
   id        String   @id @default(cuid())
   guildId   String
   userId    String
+  channelId String
   startTime DateTime @default(now())
   lastTick  DateTime @default(now())
   open      Boolean  @default(true)
