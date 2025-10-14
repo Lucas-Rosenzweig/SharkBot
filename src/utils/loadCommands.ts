@@ -10,6 +10,6 @@ export function loadCommands(client: Client) {
     const command = require(join(commandsPath, file));
     commands.set(command.data.name, command);
   }
+  // @ts-ignore
   client.commands = commands;
 }
-
