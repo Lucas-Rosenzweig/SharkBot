@@ -1,0 +1,11 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+      POSTGRES_DB: discordbot
+    ports: ["5432:5432"]
+    volumes: [db-data:/var/lib/postgresql/data]
+volumes:
+  db-data:
