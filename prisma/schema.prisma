@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  id            String         @id
+  name          String?
+  users         User[]
+  reactionsMaps ReactionMap[]
+  levelRoles    LevelRole[]
+  voiceSessions VoiceSession[]
+}
+
+model User {
+  id        String @id //`${guildId}:${discordId}`
+  guildId   String
+  discordId String
+  xp        Int    @default(0)
+  level     Int    @default(0)
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, discordId])
+}
+
+model ReactionMap {
+  id              String  @id @default(cuid())
+  guildId         String
+  messageId       String
+  emoji           String
+  roleId          String
+  removeOnUnreact Boolean @default(false) // Whether to remove the role when the user unreacts
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([messageId, emoji])
+}
+
+model LevelRole {
+  id       String @id @default(cuid())
+  guildId  String
+  roleId   String
+  levelReq Int
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, levelReq])
+}
+
+model VoiceSession {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  startTime DateTime @default(now())
+  lastTick  DateTime @default(now())
+  open      Boolean  @default(true)
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, userId, open])
+}
