@@ -5,6 +5,12 @@
   "main": "index.ts",
   "scripts": {
     "dev": "nodemon --watch src --exec tsx src/index.ts",
+    "deploy": "tsx src/scripts/deploy-commands.ts",
+    "deploy:guild": "tsx src/scripts/deploy-guild.ts",
+    "deploy:global": "tsx src/scripts/deploy-global.ts",
+    "purge:guild": "tsx src/scripts/purge-guild.ts",
+    "purge:global": "tsx src/scripts/purge-global.ts",
+    "purge:all": "tsx src/scripts/purge-guild.ts && tsx src/scripts/purge-global.ts",
     "start": "node dist/index.js",
     "prisma:gen": "prisma generate",
     "prisma:push": "prisma db push"

@@ -3,6 +3,7 @@ import { prisma } from './utils/prisma';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { loadCommands } from './utils/loadCommands';
 import { loadEvents } from './utils/loadEvents';
+import { loadContextMenus } from './utils/loadContextMenus';
 
 export const client = new Client({
     intents: [
@@ -16,7 +17,9 @@ export const client = new Client({
     partials: [Partials.Message, Partials.Reaction, Partials.Channel, Partials.User],
 });
 
+// Load commands, context menus, and events
 loadCommands(client);
+loadContextMenus(client);
 loadEvents(client);
 
 client.login(process.env.DISCORD_TOKEN);
