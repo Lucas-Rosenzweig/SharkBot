@@ -10,7 +10,7 @@ export const data = new ContextMenuCommandBuilder()
     .setName('Créer reaction-role')
     .setType(ApplicationCommandType.Message);
 
-const EMOJI_WAIT_TIME = 30_000; // 30 secondes
+const EMOJI_WAIT_TIME = 300_000; // 5 minutes
 
 async function waitForUserEmoji(interaction: MessageContextMenuCommandInteraction): Promise<Message | null> {
     if (!interaction.channel || !('awaitMessages' in interaction.channel)) {
@@ -37,7 +37,6 @@ async function waitForUserEmoji(interaction: MessageContextMenuCommandInteractio
 async function deleteMessageSafely(message: Message): Promise<boolean> {
     try {
         await message.delete();
-        console.log('✓ Message supprimé avec succès');
         return true;
     } catch (error) {
         console.error('✗ Erreur lors de la suppression du message:', error);
@@ -47,7 +46,7 @@ async function deleteMessageSafely(message: Message): Promise<boolean> {
 
 export async function execute(interaction: MessageContextMenuCommandInteraction) {
     await interaction.reply({
-        content: 'Envoie l\'emoji à associer dans les 30 secondes.',
+        content: 'Envoie l\'emoji à associer dans les 5 minutes.',
         flags: MessageFlags.Ephemeral
     });
 
