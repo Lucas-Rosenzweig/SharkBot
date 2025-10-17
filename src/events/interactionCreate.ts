@@ -1,5 +1,6 @@
 import {Interaction, MessageFlags} from 'discord.js';
 import { client } from '../index';
+import { handleSelectInteraction } from '../state/reactionRoleSetup';
 
 export const name = 'interactionCreate';
 export async function execute(interaction: Interaction) {
@@ -32,5 +33,19 @@ export async function execute(interaction: Interaction) {
         await interaction.reply({ content: 'Une erreur est survenue.', flags: MessageFlags.Ephemeral });
       }
     }
+    return;
+  }
+
+  // Traitement des sélecteurs (RoleSelect)
+  // Délègue au handler de state qui met à jour le setup et édite le message de setup
+  // @ts-ignore
+  if (interaction.isRoleSelectMenu && typeof interaction.isRoleSelectMenu === 'function' && interaction.isRoleSelectMenu()) {
+    try {
+      // @ts-ignore
+      await handleSelectInteraction(interaction);
+    } catch (error) {
+      console.error('Erreur dans handleSelectInteraction:', error);
+    }
+    return;
   }
 }

@@ -2,9 +2,11 @@ import {
     ContextMenuCommandBuilder,
     ApplicationCommandType,
     MessageContextMenuCommandInteraction,
-    MessageFlags,
-    Message
+    Message,
+    ContainerBuilder,
+    MessageFlags
 } from 'discord.js';
+import { buildUi, createSetup, Setup } from "../state/reactionRoleSetup";
 
 export const data = new ContextMenuCommandBuilder()
     .setName('Créer reaction-role')
@@ -12,27 +14,6 @@ export const data = new ContextMenuCommandBuilder()
 
 const EMOJI_WAIT_TIME = 300_000; // 5 minutes
 
-async function waitForUserEmoji(interaction: MessageContextMenuCommandInteraction): Promise<Message | null> {
-    if (!interaction.channel || !('awaitMessages' in interaction.channel)) {
-        console.error('✗ Channel invalide pour attendre des messages');
-        return null;
-    }
-
-    const filter = (m: Message) => m.author.id === interaction.user.id;
-
-    try {
-        const collected = await interaction.channel.awaitMessages({
-            filter,
-            max: 1,
-            time: EMOJI_WAIT_TIME,
-            errors: ['time']
-        });
-
-        return collected.first() || null;
-    } catch (error) {
-        return null;
-    }
-}
 
 async function deleteMessageSafely(message: Message): Promise<boolean> {
     try {
@@ -45,22 +26,27 @@ async function deleteMessageSafely(message: Message): Promise<boolean> {
 }
 
 export async function execute(interaction: MessageContextMenuCommandInteraction) {
-    await interaction.reply({
-        content: 'Envoie l\'emoji à associer dans les 5 minutes.',
-        flags: MessageFlags.Ephemeral
-    });
+    const targetMessage = interaction.options.getMessage('message') || interaction.targetMessage;
 
-    const emojiMessage = await waitForUserEmoji(interaction);
-    if (!emojiMessage) {
-        await interaction.editReply({
-            content: '⏳ Temps écoulé. Veuillez réessayer.'
-        });
-        return;
+    const setup: Setup = {
+        ownerId: interaction.user.id,
+        guildId: interaction.guildId!,
+        channelId: interaction.channelId,
+        targetMessageId: targetMessage?.id ?? '',
+        setupMessageId: '',
+        roles: {}
     }
 
-    await deleteMessageSafely(emojiMessage);
+    const container: ContainerBuilder = buildUi(setup as any);
 
-    await interaction.editReply({
-        content: `✅ Emoji reçu: ${emojiMessage.content}`
-    });
+    // Répondre à l'interaction et récupérer le message envoyé (fetchReply)
+    const sent = await interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        fetchReply: true,
+    }) as any;
+
+    // stocker le setup avec l'ID du message de setup réel
+    setup.setupMessageId = sent.id;
+    createSetup(setup);
 }
