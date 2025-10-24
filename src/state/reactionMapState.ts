@@ -64,6 +64,24 @@ export class ReactionMapState extends EventEmitter {
         return Array.from(guildMap.values());
     }
 
+    async getRoleForReaction(guildId: string, messageId: string, emoji: string): Promise<ReactionMapRecord | null> {
+        const guildMap = this.store.get(guildId);
+        if (!guildMap) {
+            console.log(`Aucun mapping trouvé pour la guilde ${guildId}`);
+            return null;
+        }
+        console.log(`Recherche de mapping pour guildId=${guildId}, messageId=${messageId}, emoji=${emoji}`);
+        for (const reactionMap of guildMap.values()) {
+            console.log(`Vérification du mapping:`, reactionMap);
+            if (reactionMap.messageId === messageId && reactionMap.emoji === emoji) {
+                console.log(`Mapping trouvé avant retour:`, reactionMap);
+                return reactionMap;
+            }
+        }
+        console.log(`Aucun mapping correspondant trouvé pour messageId=${messageId}, emoji=${emoji}`);
+        return null;
+    }
+
     async addReactionMap(guildId: string, reactionMap: ReactionMapRecord) {
         let guildMap = this.store.get(guildId);
         if (!guildMap) {

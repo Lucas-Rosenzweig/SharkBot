@@ -60,7 +60,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         const messageId = interaction.options.getString("messageid") ?? undefined;
         const emojiInput = interaction.options.getString("emoji", true);
         const role = interaction.options.getRole("role", true);
-        const removeOnUnreact = interaction.options.getBoolean("removerole") ?? false;
+        const removeOnUnreact = interaction.options.getBoolean("removerole") ?? true;
 
         const targetMessage = messageId
             ? await interaction.channel.messages.fetch(messageId).catch(() => null)
