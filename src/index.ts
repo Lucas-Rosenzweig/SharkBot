@@ -34,6 +34,7 @@ async function main() {
         'listeners'
     );
 
+    await reactionMapState.load(); // Load reaction maps from the database
     await client.login(process.env.DISCORD_TOKEN);
     await upsertGuilds(client); // On est obligé d'attendre que le client soit prêt avant d'appeler cette fonction
 }

@@ -52,6 +52,7 @@ export class ReactionMapState extends EventEmitter {
             }
             this.store.set(guild.id, guildMap);
         }
+        console.log("ReactionMapState loaded reaction maps for", this.store.size, "guilds.");
         this.emit('loaded-reaction-maps');
     }
 
@@ -74,7 +75,6 @@ export class ReactionMapState extends EventEmitter {
         // Also persist to the database
         await prisma.reactionMap.create({
             data: {
-                id: reactionMap.id,
                 guildId: reactionMap.guildId,
                 messageId: reactionMap.messageId,
                 emoji: reactionMap.emoji,

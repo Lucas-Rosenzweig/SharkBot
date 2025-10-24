@@ -45,4 +45,3 @@ if (!guildId) {
         process.exit(1);
     }
 })();
-
