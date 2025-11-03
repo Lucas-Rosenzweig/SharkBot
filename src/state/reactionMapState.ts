@@ -8,6 +8,7 @@ export type ReactionMapRecord = {
     emoji: string;
     roleId: string;
     removeOnUnreact: boolean;
+    oldReactionMapRecord?: ReactionMapRecord;
 };
 
 export class ReactionMapState extends EventEmitter {
@@ -37,6 +38,28 @@ export class ReactionMapState extends EventEmitter {
             },
         });
 
+        //If store is not empty , populate the oldReactionMapRecord field
+        if (this.store.size > 0) {
+            for (const guild of guilds) {
+                const guildMap = this.store.get(guild.id);
+                if (guildMap) {
+                    for (const reactionMap of guild.reactionMaps) {
+                        const existingRecord = guildMap.get(reactionMap.id);
+                        if (existingRecord) {
+                            existingRecord.oldReactionMapRecord = {
+                                id: reactionMap.id,
+                                guildId: reactionMap.guildId,
+                                messageId: reactionMap.messageId,
+                                emoji: reactionMap.emoji,
+                                roleId: reactionMap.roleId,
+                                removeOnUnreact: reactionMap.removeOnUnreact,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
         // Populate the store
         for (const guild of guilds) {
             const guildMap = new Map<string, ReactionMapRecord>();
@@ -52,7 +75,6 @@ export class ReactionMapState extends EventEmitter {
             }
             this.store.set(guild.id, guildMap);
         }
-        console.log("ReactionMapState loaded reaction maps for", this.store.size, "guilds.");
         this.emit('loaded-reaction-maps');
     }
 
@@ -67,18 +89,14 @@ export class ReactionMapState extends EventEmitter {
     async getRoleForReaction(guildId: string, messageId: string, emoji: string): Promise<ReactionMapRecord | null> {
         const guildMap = this.store.get(guildId);
         if (!guildMap) {
-            console.log(`Aucun mapping trouvé pour la guilde ${guildId}`);
             return null;
         }
         console.log(`Recherche de mapping pour guildId=${guildId}, messageId=${messageId}, emoji=${emoji}`);
         for (const reactionMap of guildMap.values()) {
-            console.log(`Vérification du mapping:`, reactionMap);
             if (reactionMap.messageId === messageId && reactionMap.emoji === emoji) {
-                console.log(`Mapping trouvé avant retour:`, reactionMap);
                 return reactionMap;
             }
         }
-        console.log(`Aucun mapping correspondant trouvé pour messageId=${messageId}, emoji=${emoji}`);
         return null;
     }
 

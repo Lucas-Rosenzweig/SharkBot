@@ -2,9 +2,8 @@ import {
     ChatInputCommandInteraction,
     SlashCommandBuilder,
     MessageFlags,
-    PermissionsBitField,
     GuildEmoji,
-    PermissionFlagsBits,
+    PermissionFlagsBits, InteractionContextType,
 } from "discord.js";
 import { ReactionMapState } from "../state/reactionMapState";
 
@@ -12,6 +11,7 @@ export const data = new SlashCommandBuilder()
     .setName("rr")
     .setDescription("Gérer les rôles de réaction")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+    .setContexts(InteractionContextType.Guild)
     .addSubcommand((sub) =>
         sub
             .setName("add")
