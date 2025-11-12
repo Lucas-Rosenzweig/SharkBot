@@ -8,7 +8,6 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
     if (reaction.partial) {
         try { await reaction.fetch(); } catch { return; }
     }
-    console.log("tié un tigre");
     const message = reaction.message;
     const guild = message.guild;
     if (!guild) return;

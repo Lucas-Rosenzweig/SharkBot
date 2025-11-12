@@ -28,8 +28,9 @@ export class ReactionMapState extends EventEmitter {
     }
 
     //Load all reaction maps from the database
-    async load(){
-        this.store.clear(); // Clear existing data
+    async load(): Promise<void> {
+        //Clear the store
+        this.store.clear();
 
         //Load all guilds with their reaction maps
         const guilds = await prisma.guild.findMany({
@@ -37,28 +38,6 @@ export class ReactionMapState extends EventEmitter {
                 reactionMaps: true,
             },
         });
-
-        //If store is not empty , populate the oldReactionMapRecord field
-        if (this.store.size > 0) {
-            for (const guild of guilds) {
-                const guildMap = this.store.get(guild.id);
-                if (guildMap) {
-                    for (const reactionMap of guild.reactionMaps) {
-                        const existingRecord = guildMap.get(reactionMap.id);
-                        if (existingRecord) {
-                            existingRecord.oldReactionMapRecord = {
-                                id: reactionMap.id,
-                                guildId: reactionMap.guildId,
-                                messageId: reactionMap.messageId,
-                                emoji: reactionMap.emoji,
-                                roleId: reactionMap.roleId,
-                                removeOnUnreact: reactionMap.removeOnUnreact,
-                            };
-                        }
-                    }
-                }
-            }
-        }
 
         // Populate the store
         for (const guild of guilds) {
@@ -98,6 +77,10 @@ export class ReactionMapState extends EventEmitter {
             }
         }
         return null;
+    }
+
+    async getStore(): Promise<Map<string, Map<string, ReactionMapRecord>>> {
+        return this.store
     }
 
     async addReactionMap(guildId: string, reactionMap: ReactionMapRecord) {

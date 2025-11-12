@@ -21,14 +21,21 @@ model Guild {
   reactionMaps  ReactionMap[]
   levelRoles    LevelRole[]
   voiceSessions VoiceSession[]
+
+  xpCooldown   Int @default(20) // in seconds
+  xpPerMessage Int @default(15)
+  xpPerMinute  Int @default(5)
 }
 
 model User {
-  id        String @id //`${guildId}:${discordId}`
+  id        Int    @id @default(autoincrement())
   guildId   String
-  discordId String
-  xp        Int    @default(0)
-  level     Int    @default(0)
+  discordId String @unique
+
+  xpTotal   Int @default(0)
+  xpCurrent Int @default(0)
+  xpNext    Int @default(155)
+  level     Int @default(1)
 
   lastMessage DateTime? // Timestamp of the last message sent by the user
 

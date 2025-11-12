@@ -7,6 +7,8 @@ import { loadEvents } from './utils/loadEvents';
 import { loadContextMenus } from './utils/loadContextMenus';
 import { ReactionMapState } from './state/reactionMapState';
 import {upsertGuilds} from "./utils/upsertGuilds";
+import {setupReactionMapListeners} from "./listeners/reactionMapListeners";
+import {setupLevelUpListeners} from "./listeners/levelUpListeners";
 
 export const client = new Client({
     intents: [
@@ -25,17 +27,12 @@ loadContextMenus(client);
 loadEvents(client);
 
 const reactionMapState = ReactionMapState.getInstance();
+setupReactionMapListeners();
+setupLevelUpListeners(client);
 
 async function main() {
-    await reactionMapState.load();
-    console.log(
-        'ReactionMapState loaded with',
-        reactionMapState.listenerCount('loaded'),
-        'listeners'
-    );
-
-    await reactionMapState.load(); // Load reaction maps from the database
     await client.login(process.env.DISCORD_TOKEN);
+    await reactionMapState.load(); // Load reaction maps from the database
     await upsertGuilds(client); // On est obligé d'attendre que le client soit prêt avant d'appeler cette fonction
 }
 
