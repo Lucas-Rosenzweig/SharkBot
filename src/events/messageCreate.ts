@@ -11,19 +11,12 @@ export async function execute(message: Message) {
     if (message.author.bot) return; // Skip bot messages
     if (!message.guild) return; // Skip DMs
 
-    //On vérifie si l'utilisateur est en db
-    let user = await prisma.user.findUnique({
+    const user = await prisma.user.upsert({
         where: {discordId: message.author.id},
+        create: {discordId: message.author.id, guildId: message.guild.id},
+        update: {},
         include: { guild: true }
     });
-
-    //Si pas d'utilisateur, on le crée  et on le récupère
-    if (!user) {
-        user = await prisma.user.create({
-            data: {discordId: message.author.id, guildId: message.guild.id},
-            include: { guild: true }
-        });
-    }
 
     const now = Date.now();
     const cooldownMs = user.guild.xpCooldown * 1000;
@@ -32,15 +25,18 @@ export async function execute(message: Message) {
     //Maintenant on met a jour l'xp de l'utilisateur si son dernier message date de plus de 20 secondes
     if(!user.lastMessage || (now - lastMessageTime) >= cooldownMs) {
         //Calcul de l'xp totale et de l'xp pour le niveau suivant
-        const xpForNextLevel = getXpForNextLevel(user.level);
+        let xpForNextLevel = getXpForNextLevel(user.level);
         const newXpTotal = user.xpTotal + user.guild.xpPerMessage;
 
         //Mise a jour de current xp et level up si besoin
         let newLevel = user.level;
         let newXpCurrent = user.xpCurrent + user.guild.xpPerMessage;
-        if(newXpCurrent >= xpForNextLevel) {
+        while(newXpCurrent >= xpForNextLevel) { //Permet de gérer le cas où on gagne plusieurs niveaux d'un coup
+            console.log(newXpCurrent+" >= "+xpForNextLevel+"passage au level "+(newLevel+1));
             newXpCurrent -= xpForNextLevel;
             newLevel += 1;
+            //Si le joueur doit level up une deuxième fois, on recalcule l'xp pour le niveau suivant
+            if(newXpCurrent >= xpForNextLevel) xpForNextLevel = getXpForNextLevel(newLevel);
             //Emit un événement de level up ici coté node
             message.client.emit('levelUp',user, newLevel);
         }

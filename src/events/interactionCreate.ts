@@ -12,7 +12,7 @@ export async function execute(interaction: Interaction) {
     } catch (error) {
       console.error(error);
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: 'Une erreur est survenue.', ephemeral: true });
+        await interaction.reply({content: 'Une erreur est survenue.', ephemeral: true});
       }
     }
     return;
@@ -27,7 +27,7 @@ export async function execute(interaction: Interaction) {
     } catch (error) {
       console.error(error);
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: 'Une erreur est survenue.', ephemeral: true });
+        await interaction.reply({content: 'Une erreur est survenue.', ephemeral: true});
       }
     }
     return;
