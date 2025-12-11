@@ -15,16 +15,16 @@ datasource db {
 }
 
 model Guild {
-  id            String         @id
-  name          String?
-  users         User[]
-  reactionMaps  ReactionMap[]
-  levelRoles    LevelRole[]
-  voiceSessions VoiceSession[]
+  id           String        @id
+  name         String?
+  users        User[]
+  reactionMaps ReactionMap[]
+  levelRoles   LevelRole[]
 
-  xpCooldown   Int @default(20) // in seconds
-  xpPerMessage Int @default(15)
-  xpPerMinute  Int @default(5)
+  xpCooldown   Int     @default(20) // in seconds
+  xpPerMessage Int     @default(15)
+  xpPerMinute  Int     @default(5)
+  xpChannelId  String? // ID of the channel where XP messages are sent
 }
 
 model User {
@@ -66,18 +66,4 @@ model LevelRole {
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@unique([guildId, levelReq])
-}
-
-model VoiceSession {
-  id        String   @id @default(cuid())
-  guildId   String
-  userId    String
-  channelId String
-  startTime DateTime @default(now())
-  lastTick  DateTime @default(now())
-  open      Boolean  @default(true)
-
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-
-  @@index([guildId, userId, open])
 }
