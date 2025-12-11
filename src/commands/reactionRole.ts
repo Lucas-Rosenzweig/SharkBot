@@ -5,7 +5,7 @@ import {
     GuildEmoji,
     PermissionFlagsBits, InteractionContextType,
 } from "discord.js";
-import { ReactionMapState } from "../state/reactionMapState";
+import { ReactionMapService } from "../services/ReactionMapService";
 
 export const data = new SlashCommandBuilder()
     .setName("rr")
@@ -102,7 +102,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             );
         });
 
-        const reactionMapState = ReactionMapState.getInstance();
+        const reactionMapState = ReactionMapService.getInstance();
         await reactionMapState.addReactionMap(interaction.guildId!, {
             id: "",
             guildId: interaction.guildId!,

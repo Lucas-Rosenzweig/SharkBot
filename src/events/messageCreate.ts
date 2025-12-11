@@ -1,5 +1,6 @@
 import {Message} from "discord.js";
 import {prisma} from "../utils/prisma";
+import {ConfigService} from "../services/ConfigService";
 
 function getXpForNextLevel(level: number): number {
     return 5 * (level ** 2) + 50 * level + 100;
@@ -11,15 +12,17 @@ export async function execute(message: Message) {
     if (message.author.bot) return; // Skip bot messages
     if (!message.guild) return; // Skip DMs
 
+    const configService = ConfigService.getInstance();
+    const guildConfig = await configService.getConfigForGuild(message.guild.id);
+
     const user = await prisma.user.upsert({
         where: {discordId: message.author.id},
         create: {discordId: message.author.id, guildId: message.guild.id},
         update: {},
-        include: { guild: true }
     });
 
     const now = Date.now();
-    const cooldownMs = user.guild.xpCooldown * 1000;
+    const cooldownMs = guildConfig.xpCooldown * 1000;
     const lastMessageTime = user.lastMessage ? user.lastMessage.getTime() : 0;
 
     //Maintenant on met a jour l'xp de l'utilisateur si son dernier message date de plus de 20 secondes

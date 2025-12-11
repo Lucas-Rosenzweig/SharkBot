@@ -15,16 +15,27 @@ datasource db {
 }
 
 model Guild {
-  id           String        @id
+  id           String        @id // Discord Guild ID
   name         String?
   users        User[]
   reactionMaps ReactionMap[]
   levelRoles   LevelRole[]
 
+  config Config?
+}
+
+model Config {
+  id      Int    @id @default(autoincrement())
+  guildId String @unique
+
   xpCooldown   Int     @default(20) // in seconds
   xpPerMessage Int     @default(15)
   xpPerMinute  Int     @default(5)
   xpChannelId  String? // ID of the channel where XP messages are sent
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId])
 }
 
 model User {

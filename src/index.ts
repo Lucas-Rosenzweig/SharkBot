@@ -5,7 +5,7 @@ import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { loadCommands } from './utils/loadCommands';
 import { loadEvents } from './utils/loadEvents';
 import { loadContextMenus } from './utils/loadContextMenus';
-import { ReactionMapState } from './state/reactionMapState';
+import { ReactionMapService } from './services/ReactionMapService';
 import {upsertGuilds} from "./utils/upsertGuilds";
 import {setupReactionMapListeners} from "./listeners/reactionMapListeners";
 import {setupLevelUpListeners} from "./listeners/levelUpListeners";
@@ -26,7 +26,7 @@ loadCommands(client);
 loadContextMenus(client);
 loadEvents(client);
 
-const reactionMapState = ReactionMapState.getInstance();
+const reactionMapState = ReactionMapService.getInstance();
 setupReactionMapListeners();
 setupLevelUpListeners(client);
 

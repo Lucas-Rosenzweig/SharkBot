@@ -1,10 +1,10 @@
 import { MessageReaction, PartialMessageReaction, User, PartialUser } from 'discord.js';
-import { ReactionMapState, ReactionMapRecord } from '../state/reactionMapState';
+import { ReactionMapService, ReactionMapRecord } from '../services/ReactionMapService';
 
 export const name = 'messageReactionAdd';
 export async function execute(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
     if (user.bot) return;
-    const reactionMapState = ReactionMapState.getInstance();
+    const reactionMapState = ReactionMapService.getInstance();
     if (reaction.partial) {
         try { await reaction.fetch(); } catch { return; }
     }

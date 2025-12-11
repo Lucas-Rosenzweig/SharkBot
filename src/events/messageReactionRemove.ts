@@ -1,10 +1,10 @@
 import { MessageReaction, PartialMessageReaction, User, PartialUser } from 'discord.js';
-import { ReactionMapState } from '../state/reactionMapState';
+import { ReactionMapService } from '../services/ReactionMapService';
 
 export const name = 'messageReactionRemove';
 export async function execute(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
     if (user.bot) return;
-    const reactionMapState = ReactionMapState.getInstance();
+    const reactionMapState = ReactionMapService.getInstance();
     if (reaction.partial) {
         try { await reaction.fetch(); } catch { return; }
     }

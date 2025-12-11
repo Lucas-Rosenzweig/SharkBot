@@ -1,30 +1,22 @@
 import EventEmitter from "node:events";
 import { prisma } from "../utils/prisma";
+import {ReactionMapRecord} from "../type/ReactionMapRecord";
 
-export type ReactionMapRecord = {
-    id: string;
-    guildId: string;
-    messageId: string;
-    emoji: string;
-    roleId: string;
-    removeOnUnreact: boolean;
-    oldReactionMapRecord?: ReactionMapRecord;
-};
 
-export class ReactionMapState extends EventEmitter {
+export class ReactionMapService extends EventEmitter {
     private store: Map<string, Map<string, ReactionMapRecord>> = new Map();
-    private static instance: ReactionMapState | null = null;
+    private static instance: ReactionMapService | null = null;
 
     private constructor() { //Constructeur privé car singleton
         super();
     }
 
     // Singleton instance accessor
-    static getInstance(): ReactionMapState {
-        if (!ReactionMapState.instance) {
-            ReactionMapState.instance = new ReactionMapState();
+    static getInstance(): ReactionMapService {
+        if (!ReactionMapService.instance) {
+            ReactionMapService.instance = new ReactionMapService();
         }
-        return ReactionMapState.instance;
+        return ReactionMapService.instance;
     }
 
     //Load all reaction maps from the database
