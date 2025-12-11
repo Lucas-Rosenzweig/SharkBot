@@ -29,11 +29,11 @@ export async function execute(message: Message) {
     if(!user.lastMessage || (now - lastMessageTime) >= cooldownMs) {
         //Calcul de l'xp totale et de l'xp pour le niveau suivant
         let xpForNextLevel = getXpForNextLevel(user.level);
-        const newXpTotal = user.xpTotal + user.guild.xpPerMessage;
+        const newXpTotal = user.xpTotal + guildConfig.xpPerMessage;
 
         //Mise a jour de current xp et level up si besoin
         let newLevel = user.level;
-        let newXpCurrent = user.xpCurrent + user.guild.xpPerMessage;
+        let newXpCurrent = user.xpCurrent + guildConfig.xpPerMessage;
         while(newXpCurrent >= xpForNextLevel) { //Permet de gérer le cas où on gagne plusieurs niveaux d'un coup
             console.log(newXpCurrent+" >= "+xpForNextLevel+"passage au level "+(newLevel+1));
             newXpCurrent -= xpForNextLevel;

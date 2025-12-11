@@ -1,5 +1,6 @@
 import { prisma } from '../utils/prisma';
 import {Client} from "discord.js";
+import {ConfigService} from "../services/ConfigService";
 
 type User = Awaited<ReturnType<typeof prisma.user.findUnique>>;
 
@@ -8,8 +9,23 @@ type User = Awaited<ReturnType<typeof prisma.user.findUnique>>;
 export function setupLevelUpListeners(client : Client) {
     client.on('levelUp', async (user : User, newLevel: number ) => {
         if(!user) return;
-        console.log(`Utilisateur ${user?.discordId} a atteint le niveau ${newLevel}`);
-        // TODO : Message dans un channel spécifique ?
+        const configService = ConfigService.getInstance()
+        const guildConfig = await configService.getConfigForGuild(user.guildId);
+
+        //Envoie un message dans le channel de xp si configuré
+        if (guildConfig.xpChannelId) {
+            try {
+                const guild = await client.guilds.fetch(user.guildId);
+                const channel = await guild.channels.fetch(guildConfig.xpChannelId);
+                if (channel && channel.isTextBased()) {
+                    await channel.send(`🎉 <@${user.discordId}> a atteint le niveau ${newLevel} ! Félicitations !`);
+                }
+            } catch (error) {
+                console.error(`Erreur lors de l'envoi du message de level up pour l'utilisateur ${user.discordId}:`, error);
+            }
+        }
+
+        //Attribution des rôles liés au niveau
 
         const guild = await client.guilds.fetch(user.guildId);
         const member = await guild.members.fetch(user.discordId);
@@ -25,14 +41,11 @@ export function setupLevelUpListeners(client : Client) {
         })
 
         if (rolesToAdd.length === 0) {
-            console.log(`Aucun rôle à ajouter pour l'utilisateur ${user.discordId} au niveau ${newLevel}`);
             return;
         }
 
         for (const roles of rolesToAdd) {
             try {
-                console.log(`Ajout du rôle ${roles.roleId} à l'utilisateur ${user.discordId}`);
-                //TODO : Message dans un channel spécifique ?
                 await member.roles.add(roles.roleId);
             }
             catch (error) {
