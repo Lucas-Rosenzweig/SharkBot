@@ -3,4 +3,5 @@ export type Config = {
     xpPerMessage: number;
     xpPerMinute: number;
     xpChannelId?: string;
+    voiceXpRequireUnmuted: boolean;
 };

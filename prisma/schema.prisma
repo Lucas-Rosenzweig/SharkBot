@@ -28,10 +28,11 @@ model Config {
   id      Int    @id @default(autoincrement())
   guildId String @unique
 
-  xpCooldown   Int     @default(20) // in seconds
-  xpPerMessage Int     @default(15)
-  xpPerMinute  Int     @default(5)
-  xpChannelId  String? // ID of the channel where XP messages are sent
+  xpCooldown            Int     @default(20) // in seconds
+  xpPerMessage          Int     @default(15)
+  xpPerMinute           Int     @default(5)
+  xpChannelId           String? // ID of the channel where XP messages are sent
+  voiceXpRequireUnmuted Boolean @default(false) // If true, muted/deafened users don't earn voice XP
 
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 

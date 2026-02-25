@@ -1,10 +1,7 @@
 import {Message} from "discord.js";
 import {prisma} from "../utils/prisma";
 import {ConfigService} from "../services/ConfigService";
-
-function getXpForNextLevel(level: number): number {
-    return 5 * (level ** 2) + 50 * level + 100;
-}
+import {addXpToUser, getXpForNextLevel} from "../utils/addXpToUser";
 
 export const name = 'messageCreate';
 
@@ -27,33 +24,18 @@ export async function execute(message: Message) {
 
     //Maintenant on met a jour l'xp de l'utilisateur si son dernier message date de plus de 20 secondes
     if(!user.lastMessage || (now - lastMessageTime) >= cooldownMs) {
-        //Calcul de l'xp totale et de l'xp pour le niveau suivant
-        let xpForNextLevel = getXpForNextLevel(user.level);
-        const newXpTotal = user.xpTotal + guildConfig.xpPerMessage;
+        await addXpToUser(message.author.id, message.guild.id, guildConfig.xpPerMessage, message.client);
 
-        //Mise a jour de current xp et level up si besoin
-        let newLevel = user.level;
-        let newXpCurrent = user.xpCurrent + guildConfig.xpPerMessage;
-        while(newXpCurrent >= xpForNextLevel) { //Permet de gérer le cas où on gagne plusieurs niveaux d'un coup
-            console.log(newXpCurrent+" >= "+xpForNextLevel+"passage au level "+(newLevel+1));
-            newXpCurrent -= xpForNextLevel;
-            newLevel += 1;
-            //Si le joueur doit level up une deuxième fois, on recalcule l'xp pour le niveau suivant
-            if(newXpCurrent >= xpForNextLevel) xpForNextLevel = getXpForNextLevel(newLevel);
-            //Emit un événement de level up ici coté node
-            message.client.emit('levelUp',user, newLevel);
-        }
-
+        // Mise à jour du timestamp du dernier message
         await prisma.user.update({
             where: {discordId: message.author.id},
-            data: {
-                level: newLevel,
-                xpTotal: newXpTotal,
-                xpCurrent: newXpCurrent,
-                xpNext: getXpForNextLevel(newLevel),
-                lastMessage: new Date(now)
-            }
+            data: {lastMessage: new Date(now)},
         });
-        console.log(`Updated XP for user ${message.author.tag} (${message.author.id}): Level ${newLevel}, XP ${newXpCurrent}/${getXpForNextLevel(newLevel)}`);
+
+        // Recharger l'utilisateur pour le log
+        const updatedUser = await prisma.user.findUnique({where: {discordId: message.author.id}});
+        if (updatedUser) {
+            console.log(`Updated XP for user ${message.author.tag} (${message.author.id}): Level ${updatedUser.level}, XP ${updatedUser.xpCurrent}/${getXpForNextLevel(updatedUser.level)}`);
+        }
     }
 }

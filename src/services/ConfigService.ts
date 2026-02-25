@@ -20,6 +20,7 @@ export class ConfigService {
             xpPerMessage: config.xpPerMessage,
             xpPerMinute: config.xpPerMinute,
             xpChannelId: config.xpChannelId || undefined,
+            voiceXpRequireUnmuted: config.voiceXpRequireUnmuted,
         };
     }
 
@@ -51,6 +52,7 @@ export class ConfigService {
                 xpPerMessage: config.xpPerMessage,
                 xpPerMinute: config.xpPerMinute,
                 xpChannelId: config.xpChannelId || null,
+                voiceXpRequireUnmuted: config.voiceXpRequireUnmuted,
             },
             create: {
                 guildId,
@@ -92,6 +94,14 @@ export class ConfigService {
             create: {guildId, xpChannelId,},
             }
         );
+    }
+
+    async setVoiceXpRequireUnmuted(guildId: string, voiceXpRequireUnmuted: boolean): Promise<void> {
+        await prisma.config.upsert({
+            where: { guildId },
+            update: { voiceXpRequireUnmuted },
+            create: { guildId, voiceXpRequireUnmuted },
+        });
     }
 
 }

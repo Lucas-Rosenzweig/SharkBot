@@ -58,6 +58,17 @@ export const data = new SlashCommandBuilder()
                     .addChannelTypes(ChannelType.GuildText)
                     .setRequired(false)
             )
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('voice-xp-require-unmuted')
+            .setDescription('Exiger que les utilisateurs ne soient pas mute/deaf serveur pour gagner de l\'XP vocal')
+            .addBooleanOption(option =>
+                option
+                    .setName('activer')
+                    .setDescription('Activer ou désactiver cette condition')
+                    .setRequired(true)
+            )
     );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -108,6 +119,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
                             name: '📢 Salon de notifications',
                             value: config.xpChannelId ? `<#${config.xpChannelId}>` : 'Non défini (notifications désactivées)',
                             inline: false
+                        },
+                        {
+                            name: '🔇 XP vocal requiert non-mute',
+                            value: config.voiceXpRequireUnmuted ? '✅ Activé' : '❌ Désactivé',
+                            inline: true
                         }
                     )
                     .setTimestamp();
@@ -149,6 +165,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
                 } else {
                     await interaction.editReply(`✅ Les notifications de level up ont été désactivées.`);
                 }
+                break;
+            }
+
+            case 'voice-xp-require-unmuted': {
+                const enabled = interaction.options.getBoolean('activer', true);
+                await configService.setVoiceXpRequireUnmuted(interaction.guildId, enabled);
+
+                await interaction.editReply(
+                    enabled
+                        ? `✅ Les utilisateurs doivent maintenant **ne pas être mute/deaf serveur** pour gagner de l'XP en vocal.`
+                        : `✅ Les utilisateurs **mute/deaf serveur** peuvent désormais gagner de l'XP en vocal.`
+                );
                 break;
             }
 
