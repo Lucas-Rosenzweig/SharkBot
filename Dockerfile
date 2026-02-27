@@ -19,7 +19,6 @@ COPY src ./src/
 COPY assets ./assets/
 
 RUN pnpm prisma generate
-RUN pnpm exec tsc
 
 # Installer les polices Inter pour resvg dans le build stage (utilisé en dev)
 RUN mkdir -p /usr/share/fonts/truetype/inter \
@@ -41,10 +40,11 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
-COPY --from=build /app/dist ./dist/
+COPY --from=build /app/src ./src/
 COPY --from=build /app/generated ./generated/
 COPY --from=build /app/prisma ./prisma/
 COPY --from=build /app/assets ./assets/
+COPY --from=build /app/tsconfig.json ./
 
 # Installer les polices Inter dans le système pour resvg (loadSystemFonts:true)
 RUN mkdir -p /usr/share/fonts/truetype/inter \
