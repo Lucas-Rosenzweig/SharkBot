@@ -12,5 +12,5 @@ echo "[entrypoint] Running Prisma migrations..."
 npx prisma migrate deploy
 
 echo "[entrypoint] Starting bot..."
-exec node dist/index.js
+exec npx tsx src/index.ts
 
