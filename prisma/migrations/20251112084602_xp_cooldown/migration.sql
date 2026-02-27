@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Guild" ADD COLUMN     "xpCooldown" INTEGER NOT NULL DEFAULT 20;

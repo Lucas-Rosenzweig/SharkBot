@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Guild" ADD COLUMN     "xpPerMessage" INTEGER NOT NULL DEFAULT 10,
+ADD COLUMN     "xpPerMinute" INTEGER NOT NULL DEFAULT 5;
