@@ -8,7 +8,7 @@ export class VoiceXpService {
     private static instance: VoiceXpService;
     private intervals: Map<string, NodeJS.Timeout> = new Map(); // key: guildId:discordId
 
-    private constructor() {}
+    private constructor() { }
 
     static getInstance(): VoiceXpService {
         if (!VoiceXpService.instance) {
@@ -60,7 +60,10 @@ export class VoiceXpService {
                     return; // Pas d'XP seul
                 }
 
-                await addXpToUser(discordId, guildId, config.xpPerMinute, client);
+                await addXpToUser(discordId, guildId, config.xpPerMinute, client, {
+                    username: member.user.displayName,
+                    avatarHash: member.user.avatar,
+                });
                 console.log(`[VoiceXP] Gave ${config.xpPerMinute} XP to ${member.user.tag} in guild ${guild.name}`);
             } catch (error) {
                 console.error(`[VoiceXP] Error giving XP to ${discordId} in guild ${guildId}:`, error);

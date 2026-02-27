@@ -1,6 +1,7 @@
 import EventEmitter from "node:events";
 import { prisma } from "../utils/prisma";
-import {ReactionMapRecord} from "../type/ReactionMapRecord";
+export { ReactionMapRecord } from "../type/ReactionMapRecord";
+import type { ReactionMapRecord } from "../type/ReactionMapRecord";
 
 
 export class ReactionMapService extends EventEmitter {
@@ -49,7 +50,7 @@ export class ReactionMapService extends EventEmitter {
         this.emit('loaded-reaction-maps');
     }
 
-     getReactionMapsForGuild(guildId: string): ReactionMapRecord[] {
+    getReactionMapsForGuild(guildId: string): ReactionMapRecord[] {
         const guildMap = this.store.get(guildId);
         if (!guildMap) {
             return [];
@@ -75,16 +76,15 @@ export class ReactionMapService extends EventEmitter {
         return this.store
     }
 
-    async addReactionMap(guildId: string, reactionMap: ReactionMapRecord) {
+    async addReactionMap(guildId: string, reactionMap: Omit<ReactionMapRecord, 'id'>) {
         let guildMap = this.store.get(guildId);
         if (!guildMap) {
             guildMap = new Map<string, ReactionMapRecord>();
             this.store.set(guildId, guildMap);
         }
-        guildMap.set(reactionMap.id, reactionMap);
 
-        // Also persist to the database
-        await prisma.reactionMap.create({
+        // Persist to the database first to get the generated ID
+        const createdRecord = await prisma.reactionMap.create({
             data: {
                 guildId: reactionMap.guildId,
                 messageId: reactionMap.messageId,
@@ -93,7 +93,19 @@ export class ReactionMapService extends EventEmitter {
                 removeOnUnreact: reactionMap.removeOnUnreact,
             },
         });
+
+        // Add to the memory store with the real ID
+        guildMap.set(createdRecord.id, {
+            id: createdRecord.id,
+            guildId: createdRecord.guildId,
+            messageId: createdRecord.messageId,
+            emoji: createdRecord.emoji,
+            roleId: createdRecord.roleId,
+            removeOnUnreact: createdRecord.removeOnUnreact,
+        });
+
         this.emit('reaction-map-added');
+        return createdRecord;
     }
 
 }

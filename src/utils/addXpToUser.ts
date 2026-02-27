@@ -7,12 +7,24 @@ export function getXpForNextLevel(level: number): number {
 
 /**
  * Ajoute de l'XP à un utilisateur, gère le level up et émet l'événement 'levelUp'.
+ * Met à jour le cache du username/avatar Discord.
  */
-export async function addXpToUser(discordId: string, guildId: string, xpAmount: number, client: Client): Promise<void> {
+export async function addXpToUser(
+    discordId: string,
+    guildId: string,
+    xpAmount: number,
+    client: Client,
+    profile?: { username?: string; avatarHash?: string | null },
+): Promise<void> {
+    const profileData = profile ? {
+        ...(profile.username ? { username: profile.username } : {}),
+        ...(profile.avatarHash !== undefined ? { avatarHash: profile.avatarHash } : {}),
+    } : {};
+
     const user = await prisma.user.upsert({
         where: { discordId },
-        create: { discordId, guildId },
-        update: {},
+        create: { discordId, guildId, ...profileData },
+        update: { ...profileData },
     });
 
     let xpForNextLevel = getXpForNextLevel(user.level);

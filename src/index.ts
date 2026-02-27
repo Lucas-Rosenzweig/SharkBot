@@ -9,6 +9,7 @@ import { ReactionMapService } from './services/ReactionMapService';
 import {upsertGuilds} from "./utils/upsertGuilds";
 import {setupReactionMapListeners} from "./listeners/reactionMapListeners";
 import {setupLevelUpListeners} from "./listeners/levelUpListeners";
+import {startApiServer} from "./api/server";
 
 export const client = new Client({
     intents: [
@@ -34,6 +35,7 @@ async function main() {
     await client.login(process.env.DISCORD_TOKEN);
     await reactionMapState.load(); // Load reaction maps from the database
     await upsertGuilds(client); // On est obligé d'attendre que le client soit prêt avant d'appeler cette fonction
+    startApiServer(client); // Start the dashboard API server
 }
 
 main().catch(async (err) => {

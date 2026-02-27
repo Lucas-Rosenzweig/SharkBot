@@ -104,7 +104,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
         const reactionMapState = ReactionMapService.getInstance();
         await reactionMapState.addReactionMap(interaction.guildId!, {
-            id: "",
             guildId: interaction.guildId!,
             messageId: targetMessage.id,
             emoji: parsed.raw,

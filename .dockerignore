@@ -1,0 +1,9 @@
+node_modules
+dist
+generated
+.git
+.env
+*.md
+dashboard/node_modules
+dashboard/dist
+

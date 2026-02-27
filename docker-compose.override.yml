@@ -1,0 +1,46 @@
+# Dev overrides — hot reload for bot + dashboard
+# Usage: docker compose up (auto-merged with docker-compose.yml)
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    command: [ "sh", "-c", "pnpm prisma generate && pnpm prisma migrate deploy && pnpm dev" ]
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - ./generated:/app/generated
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      API_URL: http://localhost:3001
+      DASHBOARD_URL: http://localhost:3000
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+      target: deps
+    command: [ "pnpm", "dev", "--hostname", "0.0.0.0" ]
+    volumes:
+      - ./dashboard/app:/app/app
+      - ./dashboard/lib:/app/lib
+      - ./dashboard/middleware.ts:/app/middleware.ts
+      - ./dashboard/next.config.ts:/app/next.config.ts
+      - ./dashboard/postcss.config.mjs:/app/postcss.config.mjs
+      - ./dashboard/tsconfig.json:/app/tsconfig.json
+      - ./dashboard/components:/app/components
+      - ./dashboard/app/_components:/app/app/_components
+      - ./dashboard/public:/app/public
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      API_URL: http://bot:3001

@@ -44,6 +44,9 @@ model User {
   guildId   String
   discordId String @unique
 
+  username   String? // Cached Discord username (updated on each XP event)
+  avatarHash String? // Cached Discord avatar hash
+
   xpTotal   Int @default(0)
   xpCurrent Int @default(0)
   xpNext    Int @default(155)
@@ -54,6 +57,7 @@ model User {
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([guildId, discordId])
+  @@index([guildId, xpTotal(sort: Desc)]) // Leaderboard query: WHERE guildId ORDER BY xpTotal DESC
 }
 
 model ReactionMap {
@@ -67,6 +71,7 @@ model ReactionMap {
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, emoji])
+  @@index([guildId]) // Filter by guild queries
 }
 
 model LevelRole {
@@ -78,4 +83,5 @@ model LevelRole {
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@unique([guildId, levelReq])
+  @@index([guildId]) // Filter by guild queries
 }
