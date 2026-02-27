@@ -42,13 +42,20 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - bot
-    ports:
-      - "80:3000"
+    # Pas besoin d'exposer de ports manuellement avec Coolify, 
+    # c'est le reverse proxy (Traefik) de Coolify qui s'en charge.
     environment:
       API_URL: http://bot:3001
     networks:
       - shark-net
+      - coolify
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.shark-dashboard.rule=Host(`${FQDN}`)
+      - traefik.http.routers.shark-dashboard.entrypoints=https
+      - traefik.http.routers.shark-dashboard.tls.certresolver=letsencrypt
+      - traefik.http.services.shark-dashboard.loadbalancer.server.port=3000
 
 volumes:
   db-data:
@@ -57,3 +64,5 @@ volumes:
 networks:
   shark-net:
     driver: bridge
+  coolify:
+    external: true
