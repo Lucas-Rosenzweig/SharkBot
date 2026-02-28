@@ -32,6 +32,8 @@ services:
       DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:3000}
       API_PORT: 3001
       NODE_ENV: production
+    ports:
+      - "3001:3001"
     networks:
       - shark-net
     restart: unless-stopped
@@ -44,6 +46,9 @@ services:
       - bot
     environment:
       API_URL: http://bot:3001
+      # Sur Coolify, si http://bot:3001 echoue, on peut essayer l'IP de la gateway Docker ou son nom
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - shark-net
       - coolify
