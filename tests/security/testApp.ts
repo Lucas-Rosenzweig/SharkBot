@@ -151,13 +151,13 @@ export function createTestApp(opts: TestAppOptions = {}) {
         const testUser = req.headers['x-test-user'] as string | undefined;
         if (testUser === 'admin') {
             req.user = ADMIN_USER;
-            req.isAuthenticated = () => true;
+            (req as any).isAuthenticated = () => true;
         } else if (testUser === 'nonadmin') {
             req.user = NON_ADMIN_USER;
-            req.isAuthenticated = () => true;
+            (req as any).isAuthenticated = () => true;
         } else if (testUser === 'nonmember') {
             req.user = NON_MEMBER_USER;
-            req.isAuthenticated = () => true;
+            (req as any).isAuthenticated = () => true;
         }
         // else: no user → unauthenticated
         next();

@@ -29,6 +29,7 @@ COPY package.json pnpm-lock.yaml ./
 # Copy source code + prisma + assets
 COPY src ./src/
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 COPY assets ./assets/
 COPY tsconfig.json ./
 
