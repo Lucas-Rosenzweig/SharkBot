@@ -74,12 +74,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
         const attachment = new AttachmentBuilder(pngBuffer, { name: 'rank-card.png' });
 
-        const embed = new EmbedBuilder()
-            .setColor(0x00d2ff)
-            .setImage('attachment://rank-card.png');
-
         await interaction.editReply({
-            embeds: [embed],
             files: [attachment],
         });
     } catch (error) {
