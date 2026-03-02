@@ -6,7 +6,30 @@ node_modules
 .env.local
 .env.*.local
 
+# Prisma generated client
 /generated/prisma
 
 # Build output
 /dist
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+
+# Copilot agents & skills
+.agents/
+skills-lock.json
+
+# AI prompt files
+*.prompt.md
+
+# Design system docs (not referenced in code)
+/design-system
+
+# Test artifacts
+test-*.png
+test-*.mjs
+
