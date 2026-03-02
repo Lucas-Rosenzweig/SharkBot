@@ -1,5 +1,9 @@
-# Dev overrides — hot reload for bot + dashboard
-# Usage: docker compose up (auto-merged with docker-compose.yml)
+# ============================================================
+# docker-compose.dev.yml — Overrides pour le développement local
+# ============================================================
+# Usage : docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# Shortcut : pnpm docker:dev
+# ============================================================
 
 services:
   db:
@@ -7,11 +11,8 @@ services:
       - "5432:5432"
 
   bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: build
-    command: [ "sh", "-c", "pnpm prisma generate && pnpm prisma migrate deploy && pnpm dev" ]
+    entrypoint: []
+    command: ["sh", "-c", "pnpm prisma generate && pnpm prisma migrate deploy && pnpm dev"]
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
@@ -28,7 +29,7 @@ services:
       context: ./dashboard
       dockerfile: Dockerfile
       target: deps
-    command: [ "pnpm", "dev", "--hostname", "0.0.0.0" ]
+    command: ["pnpm", "dev", "--hostname", "0.0.0.0"]
     volumes:
       - ./dashboard/app:/app/app
       - ./dashboard/lib:/app/lib
@@ -37,10 +38,10 @@ services:
       - ./dashboard/postcss.config.mjs:/app/postcss.config.mjs
       - ./dashboard/tsconfig.json:/app/tsconfig.json
       - ./dashboard/components:/app/components
-      - ./dashboard/app/_components:/app/app/_components
       - ./dashboard/public:/app/public
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: development
       API_URL: http://bot:3001
+

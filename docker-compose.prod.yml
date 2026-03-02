@@ -1,0 +1,44 @@
+# ============================================================
+# docker-compose.prod.yml — Overrides pour la production (Coolify)
+# ============================================================
+# Coolify déploie ce fichier automatiquement via son UI.
+# Le reverse proxy (Traefik/Caddy) est géré par Coolify.
+#
+# Déploiement manuel :
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# ============================================================
+
+services:
+  db:
+    restart: unless-stopped
+    # Pas de port exposé en prod — accès uniquement via le réseau interne
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  bot:
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    # Port 3001 accessible uniquement depuis le réseau interne (dashboard → bot)
+    # Pas de ports exposés à l'hôte
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  dashboard:
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    # Coolify expose automatiquement le port 3000 via son proxy
+    # Pas besoin de mapper les ports manuellement
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+

@@ -1,245 +1,353 @@
-# Guide de Déploiement en Production (Mise en Prod)
+# 🦈 Guide de Déploiement — Shark-Bot
 
-Ce document décrit les étapes nécessaires pour déployer le Dashboard et le Bot complet (Shark-Bot) sur un serveur de production à l'aide de Docker Compose.
-
-L'architecture s'appuie sur trois conteneurs distincts :
-1. **db** : Base de données PostgreSQL 16.
-2. **bot** : Bot Discord (Node.js) qui sert également d'API Backend sur son port 3001 (en interne).
-3. **dashboard** : Application front-end Next.js qui expose l'interface utilisateur sur le port 80 et redirige les appels `/api` vers l'API interne du bot.
+Ce document décrit l'architecture Docker, l'environnement de développement local, et la procédure complète de mise en production via **Coolify**.
 
 ---
 
-## 1. Prérequis
+## Table des matières
 
-Assurez-vous que votre environnement dispose de :
-- [Docker](https://docs.docker.com/get-docker/) et de l'extension [Docker Compose](https://docs.docker.com/compose/install/) installés.
-- Un nom de domaine. *(Exemple : `shark.mondomaine.com`)*.
-
----
-
-## 2. Hébergement à Domicile (Raspberry Pi)
-
-Puisque le bot est hébergé sur un Raspberry Pi chez vos parents (derrière une box internet classique), vous ne pouvez pas simplement faire pointer votre nom de domaine vers l'IP de la box sans quelques réglages (l'IP de la box change souvent, et les ports de la box sont fermés par défaut).
-
-Voici les deux solutions recommandées :
-
-### Solution 1 (Recommandée & Plus sécurisée) : Cloudflare Tunnels
-C'est la méthode la plus simple pour accéder à un appareil local depuis l'extérieur **sans ouvrir aucun port sur la box internet**.
-1. Créez un compte gratuit sur [Cloudflare](https://dash.cloudflare.com/) et ajoutez-y votre nom de domaine.
-2. Allez dans **Zero Trust** -> **Networks** -> **Tunnels** et créez un tunnel.
-3. Le site vous donnera une commande Docker à lancer sur votre Raspberry Pi.
-4. Dans l'interface Cloudflare, configurez un "Public Hostname" (`shark.mondomaine.com`) pour pointer vers le port local de votre dashboard (ex: `http://localhost:80`).
-5. **Avantage :** Pas besoin de toucher à la configuration de la box des parents, IP dynamique gérée automatiquement, et certificat HTTPS gratuit inclus.
-
-### Solution 2 (Classique) : Redirection de Ports + IP Dynamique + Traefik
-Si vous ne souhaitez pas utiliser Cloudflare, voici la méthode complète avec le reverse proxy **Traefik** (qui s'occupera de générer automatiquement vos certificats HTTPS Let's Encrypt).
-
-#### A. Préparation du Réseau et de la Box
-1. **IP Dynamique (DDNS) :** La box de vos parents change probablement d'IP publique. Utilisez un service comme **DuckDNS** (ou le service DDNS de votre registrar) pour que `shark.mondomaine.com` pointe toujours vers l'IP de la box.
-2. **Ouverture des Ports (Box Internet) :**
-   - Connectez-vous à l'interface de la box internet de vos parents (ex: `192.168.1.1`).
-   - Allez dans la section Réseau / NAT / Transfert de Port.
-   - Redirigez les flux entrants tcp sur les ports **80** (HTTP) et **443** (HTTPS) vers l'IP locale du Raspberry Pi sur votre réseau (ex: `192.168.1.50`).
-
-#### B. Installation de Traefik avec Docker Compose
-Créez un réseau Docker partagé (si ce n'est pas déjà fait) pour que Traefik puisse communiquer avec vos autres conteneurs :
-```bash
-docker network create web
-```
-
-Créez un dossier dédié pour Traefik et son fichier `docker-compose.yml` :
-```bash
-mkdir traefik && cd traefik
-nano docker-compose.yml
-```
-
-Insérez cette configuration **Traefik** (remplacez `votre-email@email.com` par votre vraie adresse) :
-```yaml
-services:
-  traefik:
-    image: traefik:v3.0
-    container_name: traefik
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    networks:
-      - web
-    ports:
-      - 80:80
-      - 443:443
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./data/acme.json:/acme.json
-    command:
-      - --api.insecure=false
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=web
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --certificatesresolvers.myresolver.acme.tlschallenge=true
-      - --certificatesresolvers.myresolver.acme.email=votre-email@email.com
-      - --certificatesresolvers.myresolver.acme.storage=/acme.json
-
-networks:
-  web:
-    external: true
-```
-
-Initialisez le fichier qui stockera vos certificats sécurisés, puis lancez Traefik :
-```bash
-mkdir data
-touch data/acme.json
-chmod 600 data/acme.json
-docker compose up -d
-```
-
-#### C. Lier le Bot/Dashboard à Traefik
-Maintenant, retournez dans le dossier de votre projet **Shark-Bot**.
-Vous devez modifier votre fichier `docker-compose.yml` (celui du bot) pour l'attacher au réseau de Traefik et lui ajouter les "labels" magiques qui diront à Traefik : *"Hé, je suis shark.mondomaine.com, gère mon HTTPS stp"*.
-
-Ouvrez le `docker-compose.yml` de Shark-Bot et modifiez le service **dashboard** pour qu'il ressemble à ceci (n'oubliez pas d'ajouter le réseau `web` tout en bas du fichier) :
-
-```yaml
-  dashboard:
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-    depends_on:
-      - bot
-    # SUPPRIMEZ LES PORTS CAR TRAEFIK S'EN CHARGE
-    # ports:
-    #   - "80:3000"
-    environment:
-      API_URL: http://bot:3001
-    networks:
-      - shark-net
-      - web # On connecte le dashboard au réseau Traefik
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.shark-dashboard.rule=Host(`shark.mondomaine.com`)" # <-- REMPLACEZ PAR VOTRE DOMAINE
-      - "traefik.http.routers.shark-dashboard.entrypoints=websecure"
-      - "traefik.http.routers.shark-dashboard.tls.certresolver=myresolver"
-      - "traefik.http.services.shark-dashboard.loadbalancer.server.port=3000"
-
-networks:
-  shark-net:
-    driver: bridge
-  web:
-    external: true
-```
-
-Une fois cette modification faite (et vos `.env` configurés avec `https://shark.mondomaine.com`), vous pouvez lancer le projet :
-```bash
-docker compose up -d --build
-```
-Traefik détectera le dashboard, générera un certificat Let's Encrypt et rendra l'interface accessible en HTTPS !
+1. [Architecture](#1-architecture)
+2. [Développement local](#2-développement-local)
+3. [Prérequis Production](#3-prérequis-production)
+4. [Déploiement avec Coolify](#4-déploiement-avec-coolify)
+5. [Premier déploiement — Checklist](#5-premier-déploiement--checklist)
+6. [Mise à jour (Déploiement continu)](#6-mise-à-jour-déploiement-continu)
+7. [Commandes utiles](#7-commandes-utiles)
+8. [Sauvegarde & Restauration de la DB](#8-sauvegarde--restauration-de-la-db)
+9. [Rollback](#9-rollback)
+10. [Troubleshooting](#10-troubleshooting)
 
 ---
 
-## 3. Configuration Initiale
+## 1. Architecture
 
-1. **Cloner le projet** sur votre serveur de production :
-   ```bash
-   git clone <URL_DU_REPO> shark-bot
-   cd shark-bot
+L'infrastructure repose sur **3 services Docker** :
+
+| Service       | Image / Build         | Port interne | Rôle                                      |
+| ------------- | --------------------- | ------------ | ----------------------------------------- |
+| **db**        | `postgres:16-alpine`  | 5432         | Base de données PostgreSQL                 |
+| **bot**       | `./Dockerfile`        | 3001         | Bot Discord + API Backend (Express)        |
+| **dashboard** | `./dashboard/Dockerfile` | 3000      | Frontend Next.js (reverse proxy → API bot) |
+
+### Fichiers Docker Compose
+
+| Fichier                    | Rôle                                                    |
+| -------------------------- | ------------------------------------------------------- |
+| `docker-compose.yml`       | **Base commune** — définitions partagées dev & prod      |
+| `docker-compose.dev.yml`   | **Override dev** — hot-reload, ports exposés, bind mounts |
+| `docker-compose.prod.yml`  | **Override prod** — restart policy, logging, Coolify-ready |
+
+### Réseau
+
+- `shark-net` : réseau bridge interne reliant les 3 services.
+- En production, **Coolify injecte automatiquement** son propre réseau proxy pour exposer le dashboard en HTTPS.
+
+---
+
+## 2. Développement local
+
+### Prérequis
+
+- [Docker Desktop](https://docs.docker.com/get-docker/) installé
+- Un fichier `.env` à la racine (copier depuis `.env.example`)
+
+### Lancement
+
+```bash
+# Méthode rapide (via pnpm script)
+pnpm docker:dev
+
+# Méthode explicite
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+### Accès
+
+| Service     | URL                          |
+| ----------- | ---------------------------- |
+| Dashboard   | http://localhost:3000         |
+| API Bot     | http://localhost:3001         |
+| PostgreSQL  | `localhost:5432` (user/pass depuis `.env`) |
+
+### Hot-reload
+
+- **Bot** : les fichiers `src/` sont montés en bind mount → `nodemon` redémarre automatiquement.
+- **Dashboard** : les fichiers `app/`, `components/`, `lib/` sont montés → Next.js Turbopack recharge à chaud.
+
+### Arrêt
+
+```bash
+pnpm docker:dev:down
+# ou
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+```
+
+> **💡 Astuce** : Ajoutez `-v` pour supprimer aussi le volume de la DB (reset complet) :
+> ```bash
+> docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+> ```
+
+---
+
+## 3. Prérequis Production
+
+- Un serveur (VPS, Raspberry Pi, etc.) avec [Coolify](https://coolify.io) installé
+- Un nom de domaine pointant vers le serveur (ex: `shark.votredomaine.com`)
+- Le repo Git accessible depuis Coolify (GitHub, GitLab, etc.)
+- Une application Discord configurée dans le [Developer Portal](https://discord.com/developers/applications)
+
+---
+
+## 4. Déploiement avec Coolify
+
+### 4.1. Créer le projet dans Coolify
+
+1. Connectez-vous à l'interface Coolify (`https://votre-coolify.com`)
+2. Cliquez **+ Add New Resource** → **Docker Compose**
+3. Sélectionnez votre source Git (GitHub, repo privé, etc.)
+4. Renseignez le repo et la branche (`main` ou `master`)
+
+### 4.2. Configuration du Docker Compose dans Coolify
+
+Dans les paramètres de la ressource Coolify :
+
+- **Docker Compose Location** : Sélectionnez les fichiers suivants (ou collez le contenu fusionné) :
+  ```
+  docker-compose.yml + docker-compose.prod.yml
+  ```
+  > Coolify supporte la syntaxe multi-fichier. Dans le champ "Docker Compose", vous pouvez coller le contenu fusionné de `docker-compose.yml` ET `docker-compose.prod.yml` en un seul bloc YAML.
+
+- **Exposed service** : Sélectionnez le service `dashboard` (port `3000`)
+
+### 4.3. Configurer les variables d'environnement
+
+Dans l'onglet **Environment Variables** de Coolify, ajoutez :
+
+| Variable                | Valeur                                  | Obligatoire |
+| ----------------------- | --------------------------------------- | ----------- |
+| `DISCORD_TOKEN`         | Token du bot Discord                    | ✅          |
+| `DISCORD_CLIENT_ID`     | Client ID de l'app Discord              | ✅          |
+| `DISCORD_CLIENT_SECRET` | Client Secret de l'app Discord          | ✅          |
+| `SESSION_SECRET`        | Clé aléatoire (`openssl rand -hex 32`)  | ✅          |
+| `POSTGRES_USER`         | Ex: `shark_prod`                        | ✅          |
+| `POSTGRES_PASSWORD`     | Mot de passe fort et aléatoire          | ✅          |
+| `POSTGRES_DB`           | Ex: `sharkbot`                          | ✅          |
+| `API_URL`               | `https://shark.votredomaine.com`        | ✅          |
+| `DASHBOARD_URL`         | `https://shark.votredomaine.com`        | ✅          |
+
+> ⚠️ **IMPORTANT** : `API_URL` et `DASHBOARD_URL` doivent être votre URL **publique** (avec `https://`). Discord en a besoin pour les redirections OAuth2.
+
+### 4.4. Configurer le domaine
+
+Dans l'onglet **Domains** de la ressource Coolify :
+1. Ajoutez `shark.votredomaine.com`
+2. Activez le **HTTPS** (Coolify génère un certificat Let's Encrypt automatiquement)
+3. Vérifiez que le DNS pointe vers l'IP de votre serveur Coolify
+
+### 4.5. Configurer Discord Developer Portal
+
+1. Allez sur [Discord Developer Portal](https://discord.com/developers/applications) → votre application
+2. Onglet **OAuth2** → **Redirects** → Ajoutez :
+   ```
+   https://shark.votredomaine.com/api/auth/discord/callback
    ```
 
-2. **Copier le fichier d'environnement d'exemple** :
-   ```bash
-   cp .env.example .env
-   ```
+### 4.6. Déployer
 
-3. **Configurer le fichier `.env`** :
-   Éditez votre fichier `.env` (`nano .env`) et remplissez les valeurs avec soin :
-   - `DISCORD_TOKEN` : Le Token de votre bot Discord.
-   - `DISCORD_CLIENT_ID` et `DISCORD_CLIENT_SECRET` : Identifiants de votre application Discord (nécessaire pour le Dashboard).
-   - `SESSION_SECRET` : Saisissez une chaîne de caractères complexe et aléatoire pour sécuriser les sessions utilisateur.
-   
-   **Variables d'URL (TRÈS IMPORTANT POUR LA PRODUCTION) :**
-   Puisque l'application Next.js gère la communication publique via un reverse proxy (`/api`), les *URLs publiques* doivent pointer vers votre interface front-end :
-   - `API_URL` : L'URL racine de votre dashboard public. Exemple : `https://shark.mondomaine.com` (Pas de `/api` à la fin, il sera ajouté automatiquement pour le callback Discord).
-   - `DASHBOARD_URL` : Même chose, l'URL racine de votre dashboard. Exemple : `https://shark.mondomaine.com`.
-
-   > [!WARNING]
-   > Ne gardez pas `http://localhost:3001` ou `http://localhost:5173` dans le `.env` de production. Discord a besoin d'URLs résolvables publiquement pour procéder correctement aux redirections de connexion OAuth2.
-   
-   > N'oubliez pas non plus d'ajouter dans le **Discord Developer Portal** (onglet OAuth2) l'URI de redirection correspondant à : `https://shark.mondomaine.com/api/auth/discord/callback`.
+Cliquez **Deploy** dans Coolify. C'est tout ! Coolify va :
+1. Cloner le repo
+2. Builder les images Docker (bot + dashboard)
+3. Démarrer PostgreSQL, attendre le healthcheck
+4. Lancer le bot (qui exécute `prisma migrate deploy` automatiquement)
+5. Lancer le dashboard
+6. Configurer le reverse proxy + HTTPS automatiquement
 
 ---
 
-## 3. Lancement du Déploiement
+## 5. Premier déploiement — Checklist
 
-Une fois le dossier configuré, lancez les conteneurs en mode détaché avec Docker Compose :
+- [ ] Repo Git connecté à Coolify
+- [ ] Variables d'environnement configurées dans Coolify
+- [ ] Domaine configuré + DNS pointé vers le serveur
+- [ ] Redirect URI ajoutée dans Discord Developer Portal
+- [ ] Premier déploiement lancé ✅
+- [ ] Déployer les commandes slash Discord (voir ci-dessous)
+
+### Déployer les commandes Slash (obligatoire au 1er lancement)
+
+Après le premier déploiement, les commandes slash du bot doivent être enregistrées auprès de Discord :
 
 ```bash
-docker compose up -d --build
+# Via Coolify → Terminal du service bot (ou SSH sur le serveur)
+docker compose exec bot npx tsx src/scripts/deploy-global.ts
 ```
 
-Cette commande fera les actions suivantes :
-1. Déployer et initialiser la base de données PostgreSQL.
-2. Construire l'image Docker du Bot & de l'API (avec prisma generate et la compilation TypeScript).
-3. Construire et lancer le Dashboard Next.js de manière optimisée pour Docker.
-
-Le dashboard deviendra alors accessible sur le port **80** de votre machine (il est conseillé de configurer un reverse proxy comme NGINX ou Traefik avec un certificat SSL devant ce port).
+> Vous pouvez aussi accéder au terminal du conteneur `bot` directement depuis l'UI Coolify.
 
 ---
 
-## 4. Actions Post-Déploiement
+## 6. Mise à jour (Déploiement continu)
 
-### Déploiement des Commandes Slash (Bot Discord)
-Lors du premier lancement ou lorsque vous modifiez/ajoutez des commandes slash, il est impératif d'enregistrer ces commandes auprès de l'API de Discord.
-Pour ce faire, exécutez la commande suivante depuis votre machine de production :
+### Méthode 1 : Redéploiement automatique (recommandé)
+
+Activez le **webhook** dans les paramètres Coolify pour déclencher un redéploiement automatique à chaque `push` sur la branche principale.
+
+### Méthode 2 : Redéploiement manuel
+
+1. Poussez vos changements sur le repo Git
+2. Dans Coolify, cliquez **Redeploy** sur la ressource
+
+### Méthode 3 : Depuis le serveur (SSH)
 
 ```bash
-docker compose exec bot pnpm run deploy:global
+cd /chemin/vers/shark-bot
+git pull origin main
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-### Initialisation de la base de données (si applicable)
-Si le bot nécessite l'application de migrations Prisma qui ne sont pas faites automatiquement au premier lancement, vous pouvez utiliser :
-```bash
-docker compose exec bot pnpm prisma db push
-```
-*(Optionnel si non requis par le pipeline d'initialisation en place).*
-
----
-
-## 5. Mise à Jour (Déploiement Continu)
-
-Lorsque vous mettez à jour le code source de l'application via `git pull`, exécutez les commandes suivantes pour re-construire et redémarrer la production, avec une interruption minimale :
+### Si les commandes slash ont changé
 
 ```bash
-# 1. Tirer les dernières modifications
-git pull
-
-# 2. Re-builder l'infrastructure en arrière-plan et redémarrer les conteneurs affectés
-docker compose up -d --build
-
-# 3. (Si des commandes Discord ont changé) 
-docker compose exec bot pnpm run deploy:global
+docker compose exec bot npx tsx src/scripts/deploy-global.ts
 ```
 
 ---
 
-## 6. Logs & Maintenance
+## 7. Commandes utiles
 
-- **Voir les logs globaux :**
-  ```bash
-  docker compose logs -f
-  ```
-- **Voir les logs du Bot :**
-  ```bash
-  docker compose logs -f bot
-  ```
-- **Redémarrer le Bot seul :**
-  ```bash
-  docker compose restart bot
-  ```
-- **Arrêter toute l'infrastructure provisoirement :**
-  ```bash
-  docker compose down
-  ```
+### Logs
+
+```bash
+# Tous les services
+docker compose logs -f
+
+# Un service spécifique
+docker compose logs -f bot
+docker compose logs -f dashboard
+docker compose logs -f db
+
+# Les 100 dernières lignes du bot
+docker compose logs --tail=100 bot
+```
+
+### Redémarrage
+
+```bash
+# Redémarrer un seul service
+docker compose restart bot
+
+# Reconstruire + redémarrer un service
+docker compose up -d --build bot
+```
+
+### Prisma (sur le conteneur bot)
+
+```bash
+# Appliquer les migrations
+docker compose exec bot npx prisma migrate deploy
+
+# Ouvrir Prisma Studio (port 5555)
+docker compose exec bot npx prisma studio
+
+# Reset DB (⚠️ supprime toutes les données)
+docker compose exec bot npx prisma migrate reset
+```
+
+### Shell dans un conteneur
+
+```bash
+docker compose exec bot sh
+docker compose exec dashboard sh
+docker compose exec db psql -U shark -d sharkbot
+```
+
+---
+
+## 8. Sauvegarde & Restauration de la DB
+
+### Sauvegarde manuelle
+
+```bash
+# Créer un dump SQL
+docker compose exec db pg_dump -U shark sharkbot > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### Restauration
+
+```bash
+# Restaurer depuis un dump
+cat backup_XXXXXXXX_XXXXXX.sql | docker compose exec -T db psql -U shark -d sharkbot
+```
+
+### Sauvegarde automatique (cron)
+
+Ajoutez cette ligne à votre crontab (`crontab -e`) sur le serveur :
+
+```cron
+# Backup quotidien à 3h du matin
+0 3 * * * cd /chemin/vers/shark-bot && docker compose exec -T db pg_dump -U shark sharkbot | gzip > /backups/sharkbot_$(date +\%Y\%m\%d).sql.gz
+```
+
+---
+
+## 9. Rollback
+
+### Via Coolify
+
+Coolify conserve un historique des déploiements. Cliquez sur un déploiement précédent pour revenir en arrière.
+
+### Manuellement
+
+```bash
+# Revenir au commit précédent
+git log --oneline -5          # Trouver le hash du commit
+git checkout <commit-hash>
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+### Rollback de la DB
+
+Si une migration a causé un problème, restaurez depuis le dernier backup :
+
+```bash
+# 1. Arrêter le bot
+docker compose stop bot
+
+# 2. Restaurer la DB
+cat backup_XXXXXXXX.sql | docker compose exec -T db psql -U shark -d sharkbot
+
+# 3. Redémarrer
+docker compose start bot
+```
+
+---
+
+## 10. Troubleshooting
+
+### Le dashboard affiche une erreur 502
+
+- Le bot n'a pas encore démarré. Vérifiez : `docker compose logs bot`
+- Le healthcheck de la DB a échoué. Vérifiez : `docker compose logs db`
+
+### OAuth2 redirige vers localhost
+
+- Vérifiez que `API_URL` et `DASHBOARD_URL` sont configurés avec l'URL **publique** (`https://...`) dans les variables Coolify.
+- Vérifiez que la redirect URI est ajoutée dans Discord Developer Portal.
+
+### Les commandes slash ne s'affichent pas
+
+```bash
+docker compose exec bot npx tsx src/scripts/deploy-global.ts
+```
+> Les commandes globales peuvent mettre jusqu'à 1h pour se propager. Pour tester instantanément, utilisez `deploy:guild`.
+
+### La DB ne se crée pas
+
+Vérifiez que `POSTGRES_PASSWORD` est bien défini (pas vide). Le docker-compose échouera si cette variable est manquante grâce au guard `${POSTGRES_PASSWORD:?...}`.
+
+### Erreur "prisma migrate deploy" au démarrage
+
+```bash
+# Se connecter au conteneur et vérifier l'état des migrations
+docker compose exec bot npx prisma migrate status
+```

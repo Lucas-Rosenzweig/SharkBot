@@ -13,4 +13,3 @@ npx prisma migrate deploy
 
 echo "[entrypoint] Starting bot..."
 exec npx tsx src/index.ts
-

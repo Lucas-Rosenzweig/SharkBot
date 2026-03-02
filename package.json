@@ -14,7 +14,11 @@
     "build": "tsc",
     "start": "tsx src/index.ts",
     "prisma:gen": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker:dev:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
+    "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d --build",
+    "docker:prod:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod down"
   },
   "keywords": [],
   "author": "",
