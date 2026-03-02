@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Fira_Code } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
+import { CsrfProvider } from '@/components/csrf-provider';
 import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({
@@ -35,7 +36,9 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                 >
-                    {children}
+                    <CsrfProvider>
+                        {children}
+                    </CsrfProvider>
                     <Toaster position="bottom-right" richColors />
                 </ThemeProvider>
             </body>

@@ -3,6 +3,7 @@ import { Client, ChannelType } from 'discord.js';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { ReactionMapService } from '../../services/ReactionMapService';
 import { prisma } from '../../utils/prisma';
+import { validate, createReactionRoleSchema } from '../validators/schemas';
 
 export function createReactionRolesRouter(client: Client): Router {
     const router = Router({ mergeParams: true });
@@ -22,14 +23,9 @@ export function createReactionRolesRouter(client: Client): Router {
 
     // POST /api/guilds/:guildId/reaction-roles
     // Triggers the bot to react on a Discord message, then persists the mapping
-    router.post('/', requireAuth, requireGuildAdmin, async (req: Request, res: Response) => {
+    router.post('/', requireAuth, requireGuildAdmin, validate(createReactionRoleSchema), async (req: Request, res: Response) => {
         try {
-            const { messageId, emoji, roleId, removeOnUnreact = true } = req.body;
-
-            if (!messageId || !emoji || !roleId) {
-                res.status(400).json({ error: 'messageId, emoji et roleId sont requis' });
-                return;
-            }
+            const { messageId, emoji, roleId, removeOnUnreact } = req.body;
 
             const guildId = req.params.guildId as string;
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { prisma } from '../../utils/prisma';
+import { validate, createLevelRoleSchema } from '../validators/schemas';
 
 const router = Router({ mergeParams: true });
 
@@ -20,15 +21,11 @@ router.get('/', requireAuth, requireGuildAdmin, async (req: Request, res: Respon
 });
 
 // POST /api/guilds/:guildId/level-roles
-router.post('/', requireAuth, requireGuildAdmin, async (req: Request, res: Response) => {
+router.post('/', requireAuth, requireGuildAdmin, validate(createLevelRoleSchema), async (req: Request, res: Response) => {
     try {
         const guildId = req.params.guildId as string;
         const { roleId, levelReq } = req.body;
 
-        if (!roleId || levelReq === undefined) {
-            res.status(400).json({ error: 'roleId et levelReq sont requis' });
-            return;
-        }
 
         // Check if already exists
         const existing = await prisma.levelRole.findFirst({

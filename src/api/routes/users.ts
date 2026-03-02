@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { prisma } from '../../utils/prisma';
 import { getXpForNextLevel } from '../../utils/addXpToUser';
+import { validate, updateUserSchema } from '../validators/schemas';
 
 const router = Router({ mergeParams: true });
 
@@ -42,7 +43,7 @@ router.get('/', requireAuth, requireGuildAdmin, async (req: Request, res: Respon
 });
 
 // PUT /api/guilds/:guildId/users/:discordId — edit user level/XP
-router.put('/:discordId', requireAuth, requireGuildAdmin, async (req: Request, res: Response) => {
+router.put('/:discordId', requireAuth, requireGuildAdmin, validate(updateUserSchema), async (req: Request, res: Response) => {
     try {
         const guildId = req.params.guildId as string;
         const discordId = req.params.discordId as string;

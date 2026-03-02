@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, Loader2, Timer, MessageSquare, Mic, Bell, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface Config {
     xpCooldown: number;
@@ -40,7 +41,7 @@ export default function ConfigForm({
         try {
             const res = await fetch(`/api/guilds/${guildId}/config`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify(config),
             });

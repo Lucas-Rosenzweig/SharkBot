@@ -3,13 +3,14 @@
 import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { csrfHeaders } from '@/lib/csrf';
 
 export default function LogoutButton() {
     const router = useRouter();
 
     const handleLogout = async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            await fetch('/api/auth/logout', { method: 'POST', headers: csrfHeaders(), credentials: 'include' });
             window.location.href = '/login';
         } catch (error) {
             console.error('Error logging out:', error);

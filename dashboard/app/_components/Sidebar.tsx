@@ -7,6 +7,7 @@ import { Settings, Award, Smile, BarChart3, ChevronLeft, LogOut, Home } from 'lu
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { SharkIcon } from '@/app/_components/SharkIcon';
+import { csrfHeaders } from '@/lib/csrf';
 
 const navItems = [
     { to: '', label: 'Vue d\'ensemble', icon: Home },
@@ -28,7 +29,7 @@ export default function Sidebar({
     const pathname = usePathname();
 
     const handleLogout = async () => {
-        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+        await fetch('/api/auth/logout', { method: 'POST', headers: csrfHeaders(), credentials: 'include' });
         window.location.href = '/login';
     };
 

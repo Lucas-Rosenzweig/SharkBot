@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { ConfigService } from '../../services/ConfigService';
+import { validate, updateConfigSchema } from '../validators/schemas';
 
 const router = Router({ mergeParams: true });
 
@@ -19,7 +20,7 @@ router.get('/', requireAuth, requireGuildAdmin, async (req: Request, res: Respon
 });
 
 // PUT /api/guilds/:guildId/config
-router.put('/', requireAuth, requireGuildAdmin, async (req: Request, res: Response) => {
+router.put('/', requireAuth, requireGuildAdmin, validate(updateConfigSchema), async (req: Request, res: Response) => {
     try {
         const guildId = req.params.guildId as string;
         const { xpCooldown, xpPerMessage, xpPerMinute, xpChannelId, voiceXpRequireUnmuted } = req.body;

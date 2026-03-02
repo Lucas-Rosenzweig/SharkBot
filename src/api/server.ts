@@ -1,11 +1,14 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import passport from 'passport';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import rateLimit from 'express-rate-limit';
 import { Client } from 'discord.js';
 import { OAuthUser } from './middleware/auth';
+import { doubleCsrfProtection, generateCsrfToken } from './middleware/csrf';
 
 // Routes
 import authRouter from './routes/auth';
@@ -18,8 +21,40 @@ import { createReactionRolesRouter } from './routes/reactionRoles';
 export function startApiServer(client: Client): void {
     const app = express();
     const PORT = process.env.API_PORT || 3001;
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    // Rate limiting
+    // ── Helmet: security headers ─────────────────────────────
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", 'data:', 'https://cdn.discordapp.com'],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'", 'data:'],
+                objectSrc: ["'none'"],
+                frameSrc: ["'none'"],
+            },
+        },
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+        },
+    }));
+
+    // ── HTTPS redirect in production ─────────────────────────
+    if (isProduction) {
+        app.use((req, res, next) => {
+            if (req.headers['x-forwarded-proto'] !== 'https') {
+                return res.redirect(301, `https://${req.headers.host}${req.url}`);
+            }
+            next();
+        });
+    }
+
+    // ── Rate limiting (global) ───────────────────────────────
     const limiter = rateLimit({
         windowMs: 1 * 60 * 1000, // 1 minute
         max: 100,
@@ -28,7 +63,17 @@ export function startApiServer(client: Client): void {
     });
     app.use(limiter);
 
-    // CORS
+    // ── Auth rate limiter (strict) ───────────────────────────
+    const authLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: 'Too many authentication attempts, please try again later.',
+    });
+    app.use('/api/auth/discord', authLimiter);
+
+    // ── CORS ─────────────────────────────────────────────────
     const dashboardUrl = process.env.DASHBOARD_URL || 'http://localhost:5173';
     app.use(cors({
         origin: dashboardUrl,
@@ -38,16 +83,25 @@ export function startApiServer(client: Client): void {
     // Body parsing
     app.use(express.json());
 
+    // Cookie parser (required by csrf-csrf)
+    app.use(cookieParser());
+
     // Sessions
+    const sessionSecret = process.env.SESSION_SECRET;
+    if (!sessionSecret) {
+        console.error('[API] SESSION_SECRET must be set');
+        return;
+    }
+
     app.use(session({
-        secret: process.env.SESSION_SECRET || 'shark-bot-secret-change-me',
+        secret: sessionSecret,
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: process.env.NODE_ENV === 'production',
+            secure: isProduction,
             httpOnly: true,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: isProduction ? 'none' : 'lax',
         },
     }));
 
@@ -96,6 +150,20 @@ export function startApiServer(client: Client): void {
 
     // Routes
     app.use('/api/auth', authRouter);
+
+    // ── CSRF protection ──────────────────────────────────────
+    // Token endpoint (must come after session/passport init)
+    app.get('/api/csrf-token', (req, res) => {
+        // Touch the session so it gets saved (required for saveUninitialized: false)
+        (req.session as any).csrfInitialized = true;
+        const token = generateCsrfToken(req, res);
+        res.json({ csrfToken: token });
+    });
+
+    // Protect all mutating routes (POST/PUT/PATCH/DELETE)
+    app.use('/api/guilds', doubleCsrfProtection);
+    app.use('/api/auth/logout', doubleCsrfProtection);
+
     app.use('/api/guilds', createGuildsRouter(client));
     app.use('/api/guilds/:guildId/config', configRouter);
     app.use('/api/guilds/:guildId/level-roles', levelRolesRouter);

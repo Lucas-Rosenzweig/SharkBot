@@ -19,6 +19,7 @@ import { RoleBadge } from '@/app/_components/RoleBadge';
 import { ConfirmDeleteModal } from '@/app/_components/ConfirmDeleteModal';
 import { Plus, Trash2, Loader2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface LevelRole {
     id: string;
@@ -69,13 +70,14 @@ export default function LevelRolesManager({
             if (editingId) {
                 await fetch(`/api/guilds/${guildId}/level-roles/${editingId}`, {
                     method: 'DELETE',
+                    headers: csrfHeaders(),
                     credentials: 'include',
                 });
             }
 
             const res = await fetch(`/api/guilds/${guildId}/level-roles`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify({ roleId: selectedRoleId, levelReq }),
             });
@@ -106,6 +108,7 @@ export default function LevelRolesManager({
         try {
             await fetch(`/api/guilds/${guildId}/level-roles/${id}`, {
                 method: 'DELETE',
+                headers: csrfHeaders(),
                 credentials: 'include',
             });
             setLevelRoles(levelRoles.filter((lr) => lr.id !== id));

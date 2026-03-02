@@ -21,6 +21,7 @@ import { RoleBadge } from '@/app/_components/RoleBadge';
 import { ConfirmDeleteModal } from '@/app/_components/ConfirmDeleteModal';
 import { Plus, Trash2, Loader2, AlertCircle, ShieldAlert, Sparkles, Check, X, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { csrfHeaders } from '@/lib/csrf';
 
 const STANDARD_EMOJIS = [
     // Smileys & Émotions
@@ -174,7 +175,7 @@ export default function ReactionRolesManager({
 
             const res = await fetch(`/api/guilds/${guildId}/reaction-roles`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify({ messageId, emoji, roleId, removeOnUnreact }),
             });
@@ -203,6 +204,7 @@ export default function ReactionRolesManager({
         try {
             await fetch(`/api/guilds/${guildId}/reaction-roles/${id}`, {
                 method: 'DELETE',
+                headers: csrfHeaders(),
                 credentials: 'include',
             });
             setReactionRoles(reactionRoles.filter((rr) => rr.id !== id));

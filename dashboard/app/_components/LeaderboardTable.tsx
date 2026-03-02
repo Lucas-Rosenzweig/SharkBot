@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Check, X, Pencil, Loader2, ChevronLeft, ChevronRight, Crown, Trophy } from 'lucide-react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface User {
     id: number;
@@ -87,7 +88,7 @@ export default function LeaderboardTable({
         try {
             const res = await fetch(`/api/guilds/${guildId}/users/${discordId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify({ level: editLevel, xpTotal: editXp }),
             });
