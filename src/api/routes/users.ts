@@ -3,6 +3,9 @@ import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { prisma } from '../../utils/prisma';
 import { getXpForNextLevel } from '../../utils/addXpToUser';
 import { validate, updateUserSchema } from '../validators/schemas';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('API:Users');
 
 const router = Router({ mergeParams: true });
 
@@ -37,7 +40,7 @@ router.get('/', requireAuth, requireGuildAdmin, async (req: Request, res: Respon
             },
         });
     } catch (error) {
-        console.error('Error fetching users:', error);
+        logger.error({ error }, 'Error fetching users');
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
@@ -91,7 +94,7 @@ router.put('/:discordId', requireAuth, requireGuildAdmin, validate(updateUserSch
 
         res.json(updated);
     } catch (error) {
-        console.error('Error updating user:', error);
+        logger.error({ error }, 'Error updating user');
         res.status(500).json({ error: 'Erreur lors de la mise à jour' });
     }
 });

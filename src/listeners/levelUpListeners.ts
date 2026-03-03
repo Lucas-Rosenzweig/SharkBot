@@ -1,56 +1,80 @@
 import { prisma } from '../utils/prisma';
-import {Client} from "discord.js";
-import {ConfigService} from "../services/ConfigService";
+import { AttachmentBuilder, Client } from 'discord.js';
+import { ConfigService } from '../services/ConfigService';
+import { renderLevelUpCard } from '../utils/renderLevelUpCard';
+import { parseLevelUpMessage } from '../utils/parseLevelUpMessage';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LevelUp');
 
 type User = Awaited<ReturnType<typeof prisma.user.findUnique>>;
 
+export function setupLevelUpListeners(client: Client) {
+    client.on('levelUp', async (user: User, newLevel: number) => {
+        if (!user) return;
 
-
-export function setupLevelUpListeners(client : Client) {
-    client.on('levelUp', async (user : User, newLevel: number ) => {
-        if(!user) return;
-        const configService = ConfigService.getInstance()
+        const configService = ConfigService.getInstance();
         const guildConfig = await configService.getConfigForGuild(user.guildId);
 
-        //Envoie un message dans le channel de xp si configuré
+        // Send level-up message if a channel is configured
         if (guildConfig.xpChannelId) {
             try {
                 const guild = await client.guilds.fetch(user.guildId);
                 const channel = await guild.channels.fetch(guildConfig.xpChannelId);
+
                 if (channel && channel.isTextBased()) {
-                    await channel.send(`🎉 <@${user.discordId}> a atteint le niveau ${newLevel} ! Félicitations !`);
+                    const member = await guild.members.fetch(user.discordId);
+                    const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256 });
+
+                    const pngBuffer = await renderLevelUpCard({
+                        username: member.user.displayName,
+                        avatarUrl,
+                        newLevel,
+                    });
+                    const attachment = new AttachmentBuilder(pngBuffer, { name: 'level-up.png' });
+
+                    const content = parseLevelUpMessage(guildConfig.levelUpMessage, {
+                        user: member.user.displayName,
+                        level: newLevel,
+                        mention: `<@${user.discordId}>`,
+                        server: guild.name,
+                    });
+
+                    await channel.send({
+                        ...(content ? { content } : {}),
+                        files: [attachment],
+                    });
                 }
             } catch (error) {
-                console.error(`Erreur lors de l'envoi du message de level up pour l'utilisateur ${user.discordId}:`, error);
+                logger.error({ error, guildId: user.guildId }, 'Failed to send level-up message');
             }
         }
 
-        //Attribution des rôles liés au niveau
+        // Assign level roles
+        try {
+            const rolesToAdd = await prisma.levelRole.findMany({
+                where: {
+                    guildId: user.guildId,
+                    levelReq: { lte: newLevel },
+                },
+            });
 
-        const guild = await client.guilds.fetch(user.guildId);
-        const member = await guild.members.fetch(user.discordId);
+            if (rolesToAdd.length === 0) return;
 
-        //Récupération des rôles de l'utilisateur pour les exclure des rôles à ajouter
-        const memberRoles = member.roles.cache.map(role => role.id);
-        const rolesToAdd = await prisma.levelRole.findMany({
-            where: {
-                guildId: user.guildId,
-                levelReq: { lte: newLevel },
-                roleId: { notIn: memberRoles }
+            const guild = await client.guilds.fetch(user.guildId);
+            const member = await guild.members.fetch(user.discordId);
+
+            for (const lr of rolesToAdd) {
+                if (member.roles.cache.has(lr.roleId)) continue;
+                try {
+                    await member.roles.add(lr.roleId);
+                    logger.info({ roleId: lr.roleId, discordId: user.discordId }, 'Added level role');
+                } catch (error) {
+                    logger.error({ error, roleId: lr.roleId, discordId: user.discordId }, 'Failed to add level role');
+                }
             }
-        })
-
-        if (rolesToAdd.length === 0) {
-            return;
-        }
-
-        for (const roles of rolesToAdd) {
-            try {
-                await member.roles.add(roles.roleId);
-            }
-            catch (error) {
-                console.error(`Erreur lors de l'ajout du rôle ${roles.roleId} à l'utilisateur ${user.discordId}:`, error);
-            }
+        } catch (error) {
+            logger.error({ error, discordId: user.discordId }, 'Failed to process level roles');
         }
     });
 }

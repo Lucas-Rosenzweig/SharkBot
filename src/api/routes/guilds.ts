@@ -2,6 +2,10 @@ import { Router, Request, Response } from 'express';
 import { Client, ChannelType } from 'discord.js';
 import { requireAuth, requireGuildAdmin, OAuthUser } from '../middleware/auth';
 import { prisma } from '../../utils/prisma';
+import { createLogger } from '../../utils/logger';
+import { ADMINISTRATOR_PERMISSION } from '../../utils/constants';
+
+const logger = createLogger('API:Guilds');
 
 export function createGuildsRouter(client: Client): Router {
     const router = Router();
@@ -10,11 +14,10 @@ export function createGuildsRouter(client: Client): Router {
     router.get('/', requireAuth, async (req: Request, res: Response) => {
         try {
             const user = req.user as OAuthUser;
-            const ADMIN_PERM = 0x8;
 
             // User guilds where they are admin or owner
             const adminGuilds = user.guilds.filter(
-                (g) => g.owner || (g.permissions & ADMIN_PERM) !== 0
+                (g) => g.owner || (g.permissions & ADMINISTRATOR_PERMISSION) !== 0
             );
 
             // Bot guilds from DB
@@ -32,7 +35,7 @@ export function createGuildsRouter(client: Client): Router {
 
             res.json(guilds);
         } catch (error) {
-            console.error('Error fetching guilds:', error);
+            logger.error({ error }, 'Error fetching guilds');
             res.status(500).json({ error: 'Erreur serveur' });
         }
     });
@@ -53,7 +56,7 @@ export function createGuildsRouter(client: Client): Router {
 
             res.json(textChannels);
         } catch (error) {
-            console.error('Error fetching channels:', error);
+            logger.error({ error }, 'Error fetching channels');
             res.status(500).json({ error: 'Erreur lors de la récupération des salons' });
         }
     });
@@ -76,7 +79,7 @@ export function createGuildsRouter(client: Client): Router {
 
             res.json(roleList);
         } catch (error) {
-            console.error('Error fetching roles:', error);
+            logger.error({ error }, 'Error fetching roles');
             res.status(500).json({ error: 'Erreur lors de la récupération des rôles' });
         }
     });
@@ -118,7 +121,7 @@ export function createGuildsRouter(client: Client): Router {
 
             res.json(messageList);
         } catch (error) {
-            console.error('Error fetching messages:', error);
+            logger.error({ error }, 'Error fetching messages');
             res.status(500).json({ error: 'Erreur lors de la récupération des messages' });
         }
     });
@@ -140,7 +143,7 @@ export function createGuildsRouter(client: Client): Router {
 
             res.json(emojiList);
         } catch (error) {
-            console.error('Error fetching emojis:', error);
+            logger.error({ error }, 'Error fetching emojis');
             res.status(500).json({ error: 'Erreur lors de la récupération des émojis' });
         }
     });

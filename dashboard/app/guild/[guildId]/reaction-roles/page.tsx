@@ -1,20 +1,6 @@
 import { apiFetch } from '@/lib/api';
+import type { ReactionRole, Role } from '@/lib/types';
 import ReactionRolesManager from '@/app/_components/ReactionRolesManager';
-
-interface ReactionRole {
-    id: string;
-    guildId: string;
-    messageId: string;
-    emoji: string;
-    roleId: string;
-    removeOnUnreact: boolean;
-}
-
-interface Role {
-    id: string;
-    name: string;
-    color: string;
-}
 
 export default async function ReactionRolesPage({
     params,

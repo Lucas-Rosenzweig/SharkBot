@@ -1,28 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import type { Config, Channel } from '@/lib/types';
+import { DEFAULT_LEVEL_UP_MESSAGE } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, Loader2, Timer, MessageSquare, Mic, Bell, MicOff } from 'lucide-react';
+import { Save, Loader2, Timer, MessageSquare, Mic, Bell, MicOff, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import { csrfHeaders } from '@/lib/csrf';
 
-interface Config {
-    xpCooldown: number;
-    xpPerMessage: number;
-    xpPerMinute: number;
-    xpChannelId?: string;
-    voiceXpRequireUnmuted: boolean;
-}
-
-interface Channel {
-    id: string;
-    name: string;
-}
 
 export default function ConfigForm({
     guildId,
@@ -35,6 +26,32 @@ export default function ConfigForm({
 }) {
     const [config, setConfig] = useState<Config>(initialConfig);
     const [saving, setSaving] = useState(false);
+
+
+    const previewLevelUpMessage = useMemo(() => {
+        return (template: string | null | undefined): string => {
+            const raw = template === null || template === undefined
+                ? DEFAULT_LEVEL_UP_MESSAGE
+                : template === ''
+                    ? ''
+                    : template;
+
+            if (!raw) return '(Message désactivé)';
+
+            const replacements: Record<string, string> = {
+                user: 'Utilisateur',
+                level: '5',
+                lvl: '5',
+                mention: '@Utilisateur',
+                server: 'Mon Serveur',
+            };
+
+            return raw.replace(/\{(\w+)\}/g, (match, key: string) => {
+                const lower = key.toLowerCase();
+                return replacements[lower] !== undefined ? replacements[lower] : match;
+            });
+        };
+    }, []);
 
     const handleSave = async () => {
         setSaving(true);
@@ -52,8 +69,7 @@ export default function ConfigForm({
             } else {
                 toast.error('Erreur lors de la sauvegarde de la configuration.');
             }
-        } catch (error) {
-            console.error('Error saving config:', error);
+        } catch {
             toast.error('Une erreur inattendue est survenue.');
         } finally {
             setSaving(false);
@@ -168,6 +184,43 @@ export default function ConfigForm({
                             onCheckedChange={(checked) => setConfig({ ...config, voiceXpRequireUnmuted: checked })}
                             className="data-[state=checked]:bg-primary shrink-0"
                         />
+                    </CardContent>
+                </Card>
+
+                {/* Level Up Message */}
+                <Card className="bg-card/40 backdrop-blur-md border-border/50 shadow-lg hover:shadow-primary/5 transition-all md:col-span-2">
+                    <CardContent className="pt-6 space-y-4">
+                        <div>
+                            <Label htmlFor="levelUpMessage" className="text-base flex items-center gap-2 mb-1 text-foreground">
+                                <PartyPopper className="text-primary w-5 h-5" /> Level message
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                                Le message envoyé quand un membre monte de niveau.{' '}
+                                <code className="px-1.5 py-0.5 rounded bg-muted text-xs font-mono text-foreground/80">{'{user}'}</code>{' '}
+                                <code className="px-1.5 py-0.5 rounded bg-muted text-xs font-mono text-foreground/80">{'{lvl}'}</code>{' '}
+                                <code className="px-1.5 py-0.5 rounded bg-muted text-xs font-mono text-foreground/80">{'{mention}'}</code>{' '}
+                                ainsi que la plupart du TagScript sont supportés.
+                            </p>
+                        </div>
+                        <Textarea
+                            id="levelUpMessage"
+                            value={config.levelUpMessage ?? ''}
+                            onChange={(e) => setConfig({
+                                ...config,
+                                levelUpMessage: e.target.value === '' ? null : e.target.value,
+                            })}
+                            placeholder="🎉 {mention} a atteint le niveau {level} ! Félicitations !"
+                            rows={3}
+                            maxLength={2000}
+                            className="bg-background/50 border-border/50 focus-visible:ring-primary shadow-inner resize-none font-mono text-sm"
+                        />
+
+                        {/* Discord-style preview */}
+                        <div className="rounded-lg bg-[#2b2d31] border border-[#1e1f22] p-4 space-y-1">
+                            <p className="text-[#dbdee1] text-sm whitespace-pre-wrap break-words leading-relaxed">
+                                {previewLevelUpMessage(config.levelUpMessage)}
+                            </p>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

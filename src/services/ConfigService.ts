@@ -1,12 +1,14 @@
-import { Config } from "../type/Config";
-import {prisma} from "../utils/prisma";
+import { Config } from '../type/Config';
+import { prisma } from '../utils/prisma';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ConfigService');
 
 export class ConfigService {
     private static instance: ConfigService;
 
-    private constructor() {} // Private constructor for singleton
+    private constructor() {}
 
-    // Singleton instance accessor
     static getInstance(): ConfigService {
         if (!ConfigService.instance) {
             ConfigService.instance = new ConfigService();
@@ -14,37 +16,35 @@ export class ConfigService {
         return ConfigService.instance;
     }
 
-    private mapConfigToConfigType(config: any): Config {
+    private mapToConfig(config: {
+        xpCooldown: number;
+        xpPerMessage: number;
+        xpPerMinute: number;
+        xpChannelId: string | null;
+        voiceXpRequireUnmuted: boolean;
+        levelUpMessage: string | null;
+    }): Config {
         return {
             xpCooldown: config.xpCooldown,
             xpPerMessage: config.xpPerMessage,
             xpPerMinute: config.xpPerMinute,
             xpChannelId: config.xpChannelId || undefined,
             voiceXpRequireUnmuted: config.voiceXpRequireUnmuted,
+            levelUpMessage: config.levelUpMessage ?? null,
         };
     }
 
     async getConfigForGuild(guildId: string): Promise<Config> {
-
-        // Fetch the configuration from the database
-        let config = await prisma.config.findUnique({
+        const config = await prisma.config.upsert({
             where: { guildId },
+            update: {},
+            create: { guildId },
         });
 
-        // If no config found create a default one with prisma
-        if (!config) {
-            config = await prisma.config.create({
-                data: {
-                    guildId,
-                }
-            });
-        }
-
-        return this.mapConfigToConfigType(config);
+        return this.mapToConfig(config);
     }
 
     async setConfigForGuild(guildId: string, config: Config): Promise<void> {
-        // Upsert the configuration in the database
         await prisma.config.upsert({
             where: { guildId },
             update: {
@@ -53,55 +53,52 @@ export class ConfigService {
                 xpPerMinute: config.xpPerMinute,
                 xpChannelId: config.xpChannelId || null,
                 voiceXpRequireUnmuted: config.voiceXpRequireUnmuted,
+                levelUpMessage: config.levelUpMessage,
             },
             create: {
                 guildId,
+                xpCooldown: config.xpCooldown,
+                xpPerMessage: config.xpPerMessage,
+                xpPerMinute: config.xpPerMinute,
+                xpChannelId: config.xpChannelId || null,
+                voiceXpRequireUnmuted: config.voiceXpRequireUnmuted,
+                levelUpMessage: config.levelUpMessage,
             },
         });
+        logger.info({ guildId }, 'Config updated for guild');
+    }
+
+    /**
+     * Updates a single config field using upsert.
+     * Avoids repetitive per-field setter methods.
+     */
+    private async upsertField(guildId: string, field: string, value: unknown): Promise<void> {
+        await prisma.config.upsert({
+            where: { guildId },
+            update: { [field]: value },
+            create: { guildId, [field]: value },
+        });
+        logger.info({ guildId, field, value }, 'Config field updated');
     }
 
     async setXpCooldown(guildId: string, xpCooldown: number): Promise<void> {
-        await prisma.config.upsert({
-            where: { guildId },
-            update: {xpCooldown,},
-            create: {guildId, xpCooldown,},
-            }
-        );
+        await this.upsertField(guildId, 'xpCooldown', xpCooldown);
     }
 
     async setXpPerMessage(guildId: string, xpPerMessage: number): Promise<void> {
-        await prisma.config.upsert({
-            where: { guildId },
-            update: {xpPerMessage,},
-            create: {guildId, xpPerMessage,},
-            }
-        );
+        await this.upsertField(guildId, 'xpPerMessage', xpPerMessage);
     }
 
     async setXpPerMinute(guildId: string, xpPerMinute: number): Promise<void> {
-        await prisma.config.upsert({
-            where: { guildId },
-            update: {xpPerMinute,},
-            create: {guildId, xpPerMinute,},
-            }
-        );
+        await this.upsertField(guildId, 'xpPerMinute', xpPerMinute);
     }
 
     async setXpChannelId(guildId: string, xpChannelId: string | null): Promise<void> {
-        await prisma.config.upsert({
-            where: { guildId },
-            update: {xpChannelId,},
-            create: {guildId, xpChannelId,},
-            }
-        );
+        await this.upsertField(guildId, 'xpChannelId', xpChannelId);
     }
 
     async setVoiceXpRequireUnmuted(guildId: string, voiceXpRequireUnmuted: boolean): Promise<void> {
-        await prisma.config.upsert({
-            where: { guildId },
-            update: { voiceXpRequireUnmuted },
-            create: { guildId, voiceXpRequireUnmuted },
-        });
+        await this.upsertField(guildId, 'voiceXpRequireUnmuted', voiceXpRequireUnmuted);
     }
 
 }

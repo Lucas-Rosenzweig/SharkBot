@@ -1,18 +1,6 @@
 import { apiFetch } from '@/lib/api';
+import type { LevelRole, Role } from '@/lib/types';
 import LevelRolesManager from '@/app/_components/LevelRolesManager';
-
-interface LevelRole {
-    id: string;
-    guildId: string;
-    roleId: string;
-    levelReq: number;
-}
-
-interface Role {
-    id: string;
-    name: string;
-    color: string;
-}
 
 export default async function LevelRolesPage({
     params,

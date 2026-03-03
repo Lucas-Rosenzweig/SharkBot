@@ -1,5 +1,8 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, MessageFlags, InteractionContextType } from 'discord.js';
 import { ConfigService } from '../services/ConfigService';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ConfigCommand');
 
 export const data = new SlashCommandBuilder()
     .setName('config')
@@ -184,7 +187,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
                 await interaction.editReply('❌ Sous-commande inconnue.');
         }
     } catch (error) {
-        console.error('Erreur lors de l\'exécution de la commande config:', error);
+        logger.error({ error }, 'Config command execution failed');
         await interaction.editReply('❌ Une erreur est survenue lors de l\'exécution de la commande.');
     }
 }

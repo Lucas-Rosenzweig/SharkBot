@@ -1,18 +1,10 @@
 import { apiFetch } from '@/lib/api';
+import type { Config, UsersResponse } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Settings, Award, Activity, Zap, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-interface Config {
-    xpCooldown: number;
-    xpPerMessage: number;
-    xpPerMinute: number;
-}
-
-interface UsersResponse {
-    pagination: { total: number };
-}
 
 export default async function GuildPage({
     params,

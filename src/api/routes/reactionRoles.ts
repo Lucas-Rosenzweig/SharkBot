@@ -4,6 +4,9 @@ import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { ReactionMapService } from '../../services/ReactionMapService';
 import { prisma } from '../../utils/prisma';
 import { validate, createReactionRoleSchema } from '../validators/schemas';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('API:ReactionRoles');
 
 export function createReactionRolesRouter(client: Client): Router {
     const router = Router({ mergeParams: true });
@@ -16,7 +19,7 @@ export function createReactionRolesRouter(client: Client): Router {
             const reactionMaps = reactionMapService.getReactionMapsForGuild(guildId);
             res.json(reactionMaps);
         } catch (error) {
-            console.error('Error fetching reaction roles:', error);
+            logger.error({ error }, 'Error fetching reaction roles');
             res.status(500).json({ error: 'Erreur serveur' });
         }
     });
@@ -69,7 +72,7 @@ export function createReactionRolesRouter(client: Client): Router {
 
             res.status(201).json({ success: true, messageId, emoji, roleId });
         } catch (error) {
-            console.error('Error creating reaction role:', error);
+            logger.error({ error }, 'Error creating reaction role');
             const msg = error instanceof Error ? error.message : 'Erreur lors de la création du rôle de réaction';
             res.status(500).json({ error: msg });
         }
@@ -119,7 +122,7 @@ export function createReactionRolesRouter(client: Client): Router {
                     }
                 }
             } catch (err) {
-                console.warn('Could not remove bot reaction from message:', err);
+                logger.warn({ err }, 'Could not remove bot reaction from message');
             }
 
             // Delete from DB
@@ -129,7 +132,7 @@ export function createReactionRolesRouter(client: Client): Router {
 
             res.json({ success: true });
         } catch (error) {
-            console.error('Error deleting reaction role:', error);
+            logger.error({ error }, 'Error deleting reaction role');
             res.status(500).json({ error: 'Erreur lors de la suppression du rôle de réaction' });
         }
     });

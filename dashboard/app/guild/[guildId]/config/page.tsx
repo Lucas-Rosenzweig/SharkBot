@@ -1,18 +1,6 @@
 import { apiFetch } from '@/lib/api';
+import type { Config, Channel } from '@/lib/types';
 import ConfigForm from '@/app/_components/ConfigForm';
-
-interface Config {
-    xpCooldown: number;
-    xpPerMessage: number;
-    xpPerMinute: number;
-    xpChannelId?: string;
-    voiceXpRequireUnmuted: boolean;
-}
-
-interface Channel {
-    id: string;
-    name: string;
-}
 
 export default async function ConfigPage({
     params,

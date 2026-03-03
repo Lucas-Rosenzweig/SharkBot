@@ -1,15 +1,16 @@
 import {Client, Collection} from 'discord.js';
-import fs from 'fs';
+import {readdirSync} from 'fs';
 import {join} from 'path';
+import type {BotContextMenu} from '../type/discord';
 
 export function loadContextMenus(client: Client) {
-    const contextMenus = new Collection();
+    client.contextMenus = new Collection<string, BotContextMenu>();
     const contextMenusPath = join(__dirname, '../contextMenus');
-    const contextMenuFiles = fs.readdirSync(contextMenusPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+    const contextMenuFiles = readdirSync(contextMenusPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
     for (const file of contextMenuFiles) {
         const contextMenu = require(join(contextMenusPath, file));
-        contextMenus.set(contextMenu.data.name, contextMenu);
+        if ('data' in contextMenu && 'execute' in contextMenu) {
+            client.contextMenus.set(contextMenu.data.name, contextMenu);
+        }
     }
-    // @ts-ignore
-    client.contextMenus = contextMenus;
 }

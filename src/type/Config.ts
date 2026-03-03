@@ -4,4 +4,6 @@ export type Config = {
     xpPerMinute: number;
     xpChannelId?: string;
     voiceXpRequireUnmuted: boolean;
+    /** `null` = default message, `""` = disabled, string = custom template */
+    levelUpMessage?: string | null;
 };

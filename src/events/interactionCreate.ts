@@ -1,36 +1,37 @@
-import { Interaction, ContextMenuCommandInteraction, ChatInputCommandInteraction } from 'discord.js';
-import { client } from '../index';
+import { Interaction } from 'discord.js';
+import { createLogger } from '../utils/logger';
+import '../type/discord';
+
+const logger = createLogger('InteractionCreate');
 
 export const name = 'interactionCreate';
+
 export async function execute(interaction: Interaction) {
-  // Traitement des Commandes slash
-  if (interaction.isChatInputCommand()) {
-    const command = (client as any).commands?.get((interaction as ChatInputCommandInteraction).commandName);
-    if (!command) return;
-    try {
-      await command.execute(interaction as ChatInputCommandInteraction);
-    } catch (error) {
-      console.error(error);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({content: 'Une erreur est survenue.', ephemeral: true});
-      }
+    if (interaction.isChatInputCommand()) {
+        const command = interaction.client.commands?.get(interaction.commandName);
+        if (!command) return;
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            logger.error({ error, command: interaction.commandName }, 'Command execution failed');
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: 'Une erreur est survenue.', ephemeral: true });
+            }
+        }
+        return;
     }
-    return;
-  }
 
-  if (interaction.isContextMenuCommand()) {
-    console.log('Context Menu Command detected');
-    const command = (client as any).contextMenus?.get((interaction as ContextMenuCommandInteraction).commandName);
-    if (!command) return;
-    try {
-      await command.execute(interaction as ContextMenuCommandInteraction);
-    } catch (error) {
-      console.error(error);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({content: 'Une erreur est survenue.', ephemeral: true});
-      }
+    if (interaction.isContextMenuCommand()) {
+        const command = interaction.client.contextMenus?.get(interaction.commandName);
+        if (!command) return;
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            logger.error({ error, command: interaction.commandName }, 'Context menu execution failed');
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: 'Une erreur est survenue.', ephemeral: true });
+            }
+        }
+        return;
     }
-    return;
-  }
-
 }

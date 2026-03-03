@@ -5,5 +5,4 @@ export type ReactionMapRecord = {
     emoji: string;
     roleId: string;
     removeOnUnreact: boolean;
-    oldReactionMapRecord?: ReactionMapRecord;
 };

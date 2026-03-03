@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Check, X, Pencil, Loader2, ChevronLeft, ChevronRight, Crown, Trophy } from 'lucide-react';
 import { csrfHeaders } from '@/lib/csrf';
+import { toast } from 'sonner';
 
 interface User {
     id: number;
@@ -66,8 +67,8 @@ export default function LeaderboardTable({
                 setPagination(data.pagination);
                 setPage(newPage);
             }
-        } catch (err) {
-            console.error('Error fetching leaderboard:', err);
+        } catch {
+            toast.error('Erreur lors du chargement du classement.');
         } finally {
             setLoading(false);
         }
@@ -97,8 +98,8 @@ export default function LeaderboardTable({
                 setUsers(users.map((u) => (u.discordId === discordId ? updated : u)));
                 setEditingId(null);
             }
-        } catch (err) {
-            console.error('Error saving user:', err);
+        } catch {
+            toast.error('Erreur lors de la sauvegarde de l\'utilisateur.');
         } finally {
             setSaving(false);
         }

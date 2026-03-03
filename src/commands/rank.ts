@@ -7,6 +7,9 @@ import {
 } from 'discord.js';
 import { prisma } from '../utils/prisma';
 import { renderRankCard } from '../utils/renderRankCard';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('RankCommand');
 
 export const data = new SlashCommandBuilder()
     .setName('rank')
@@ -78,7 +81,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             files: [attachment],
         });
     } catch (error) {
-        console.error('Erreur lors du rendu de la rank card:', error);
+        logger.error({ error }, 'Rank card render failed');
         await interaction.editReply('❌ Une erreur est survenue lors de la génération de la carte de rang.');
     }
 }

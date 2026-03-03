@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { ADMINISTRATOR_PERMISSION } from '../../utils/constants';
 
 // Extend express-session to include our passport user
 declare module 'express-session' {
@@ -27,7 +28,6 @@ export interface OAuthGuild {
     permissions: number;
 }
 
-const ADMINISTRATOR_PERMISSION = 0x8;
 
 /**
  * Middleware: checks the user is authenticated via OAuth2

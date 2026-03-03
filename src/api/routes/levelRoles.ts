@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { prisma } from '../../utils/prisma';
 import { validate, createLevelRoleSchema } from '../validators/schemas';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('API:LevelRoles');
 
 const router = Router({ mergeParams: true });
 
@@ -15,7 +18,7 @@ router.get('/', requireAuth, requireGuildAdmin, async (req: Request, res: Respon
         });
         res.json(levelRoles);
     } catch (error) {
-        console.error('Error fetching level roles:', error);
+        logger.error({ error }, 'Error fetching level roles');
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
@@ -47,7 +50,7 @@ router.post('/', requireAuth, requireGuildAdmin, validate(createLevelRoleSchema)
 
         res.status(201).json(levelRole);
     } catch (error) {
-        console.error('Error creating level role:', error);
+        logger.error({ error }, 'Error creating level role');
         res.status(500).json({ error: 'Erreur lors de la création du rôle de niveau' });
     }
 });
@@ -61,7 +64,7 @@ router.delete('/:id', requireAuth, requireGuildAdmin, async (req: Request, res: 
         });
         res.json({ success: true });
     } catch (error) {
-        console.error('Error deleting level role:', error);
+        logger.error({ error }, 'Error deleting level role');
         res.status(500).json({ error: 'Erreur lors de la suppression du rôle de niveau' });
     }
 });

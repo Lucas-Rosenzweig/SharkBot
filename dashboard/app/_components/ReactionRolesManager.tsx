@@ -113,8 +113,8 @@ export default function ReactionRolesManager({
                 if (res.ok) {
                     setChannels(await res.json());
                 }
-            } catch (err) {
-                console.error('Failed to fetch channels', err);
+            } catch {
+                toast.error('Impossible de charger les salons.');
             } finally {
                 setLoadingChannels(false);
             }
@@ -137,8 +137,8 @@ export default function ReactionRolesManager({
                 if (res.ok) {
                     setMessages(await res.json());
                 }
-            } catch (err) {
-                console.error('Failed to fetch messages', err);
+            } catch {
+                toast.error('Impossible de charger les messages du salon.');
             } finally {
                 setLoadingMessages(false);
             }
@@ -154,8 +154,8 @@ export default function ReactionRolesManager({
                 if (res.ok) {
                     setServerEmojis(await res.json());
                 }
-            } catch (err) {
-                console.error('Failed to fetch emojis', err);
+            } catch {
+                toast.error('Impossible de charger les émojis du serveur.');
             } finally {
                 setLoadingEmojis(false);
             }
@@ -209,8 +209,7 @@ export default function ReactionRolesManager({
             });
             setReactionRoles(reactionRoles.filter((rr) => rr.id !== id));
             toast.success('Rôle de réaction supprimé et réaction retirée.');
-        } catch (err) {
-            console.error('Error deleting reaction role:', err);
+        } catch {
             toast.error('Erreur lors de la suppression');
         }
     };

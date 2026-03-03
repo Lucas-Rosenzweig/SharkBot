@@ -1,7 +1,10 @@
 import { Message } from "discord.js";
 import { prisma } from "../utils/prisma";
 import { ConfigService } from "../services/ConfigService";
-import { addXpToUser, getXpForNextLevel } from "../utils/addXpToUser";
+import { addXpToUser } from "../utils/addXpToUser";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('MessageCreate');
 
 export const name = 'messageCreate';
 
@@ -37,10 +40,9 @@ export async function execute(message: Message) {
             data: { lastMessage: new Date(now) },
         });
 
-        // Recharger l'utilisateur pour le log
-        const updatedUser = await prisma.user.findUnique({ where: { discordId: message.author.id } });
-        if (updatedUser) {
-            console.log(`Updated XP for user ${message.author.tag} (${message.author.id}): Level ${updatedUser.level}, XP ${updatedUser.xpCurrent}/${getXpForNextLevel(updatedUser.level)}`);
-        }
+        logger.debug(
+            { user: message.author.tag, discordId: message.author.id, xp: guildConfig.xpPerMessage },
+            'Updated XP for user',
+        );
     }
 }

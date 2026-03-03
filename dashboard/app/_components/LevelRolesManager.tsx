@@ -113,8 +113,7 @@ export default function LevelRolesManager({
             });
             setLevelRoles(levelRoles.filter((lr) => lr.id !== id));
             toast.success('Rôle de niveau supprimé avec succès');
-        } catch (err) {
-            console.error('Error deleting level role:', err);
+        } catch {
             toast.error('Erreur lors de la suppression');
         }
     };

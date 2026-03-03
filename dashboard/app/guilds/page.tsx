@@ -1,54 +1,16 @@
-import { redirect } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { getDiscordAvatarUrl } from '@/lib/avatar';
+import type { Guild } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import LogoutButton from '@/app/_components/LogoutButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronRight, Server } from 'lucide-react';
 
-interface Guild {
-    id: string;
-    name: string;
-    icon: string | null;
-}
-
-interface AuthResponse {
-    authenticated: boolean;
-    user?: {
-        id: string;
-        username: string;
-        discriminator: string;
-        avatar: string | null;
-    };
-}
-
 export default async function GuildsPage() {
-    let auth: AuthResponse;
-    try {
-        auth = await apiFetch<AuthResponse>('/auth/me');
-    } catch {
-        redirect('/login');
-    }
-
-    if (!auth.authenticated || !auth.user) {
-        redirect('/login');
-    }
-
-    const { user } = auth;
-    let avatarUrl: string;
-
-    if (user.avatar) {
-        avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
-    } else {
-        const isPomelo = user.discriminator === '0' || user.discriminator === '0000';
-        if (isPomelo) {
-            const defaultAvatarIndex = Number((BigInt(user.id) >> 22n) % 6n);
-            avatarUrl = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarIndex}.png`;
-        } else {
-            const defaultAvatarIndex = Number(user.discriminator) % 5;
-            avatarUrl = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarIndex}.png`;
-        }
-    }
+    const user = await getAuthenticatedUser();
+    const avatarUrl = getDiscordAvatarUrl(user);
 
     let guilds: Guild[] = [];
     try {
@@ -74,7 +36,7 @@ export default async function GuildsPage() {
                         </h1>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="hidden sm:flex items-center gap-2 pr-3 pl-1 pr-4 py-1 rounded-full bg-secondary/30 border border-border/50">
+                        <div className="hidden sm:flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-secondary/30 border border-border/50">
                             <div className="relative w-8 h-8 shrink-0">
                                 <Image
                                     src={avatarUrl}

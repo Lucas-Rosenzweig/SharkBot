@@ -6,6 +6,9 @@ import {
     PermissionFlagsBits, InteractionContextType,
 } from "discord.js";
 import { ReactionMapService } from "../services/ReactionMapService";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('ReactionRoleCommand');
 
 export const data = new SlashCommandBuilder()
     .setName("rr")
@@ -111,7 +114,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             removeOnUnreact,
         });
 
-        console.log(reactionMapState.getReactionMapsForGuild(interaction.guildId!));
+        logger.info({ guildId: interaction.guildId, messageId: targetMessage.id }, 'Reaction role added');
         await interaction.editReply(
             `Rôle de réaction ajouté. Lien: https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${targetMessage.id}`
         );

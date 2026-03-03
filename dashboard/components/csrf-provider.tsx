@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { fetchCsrfToken } from '@/lib/csrf';
+import { toast } from 'sonner';
 
 /**
  * Fetches a CSRF token on mount so the __csrf cookie is always available
@@ -9,9 +10,9 @@ import { fetchCsrfToken } from '@/lib/csrf';
  */
 export function CsrfProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
-        fetchCsrfToken().catch((err) =>
-            console.warn('[CSRF] Failed to prefetch token:', err)
-        );
+        fetchCsrfToken().catch(() => {
+            toast.warning('Impossible de charger le jeton CSRF. Certaines actions pourraient échouer.');
+        });
     }, []);
 
     return <>{children}</>;

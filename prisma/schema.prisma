@@ -32,6 +32,7 @@ model Config {
   xpPerMinute           Int     @default(5)
   xpChannelId           String? // ID of the channel where XP messages are sent
   voiceXpRequireUnmuted Boolean @default(false) // If true, muted/deafened users don't earn voice XP
+  levelUpMessage        String? // Custom level-up message template (null = default, "" = disabled)
 
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 

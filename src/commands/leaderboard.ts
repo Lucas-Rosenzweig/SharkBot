@@ -9,10 +9,14 @@ import {
     ComponentType,
 } from 'discord.js';
 import { prisma } from '../utils/prisma';
-import { progressBar, formatNumber } from '../utils/progressBar';
+import { progressBar } from '../utils/progressBar';
+import { formatK } from '../utils/svgHelpers';
 import { getXpForNextLevel } from '../utils/addXpToUser';
+import { LEADERBOARD_PAGE_SIZE, COLLECTOR_TIMEOUT_MS } from '../utils/constants';
+import { createLogger } from '../utils/logger';
 
-const PAGE_SIZE = 10;
+const logger = createLogger('LeaderboardCommand');
+const PAGE_SIZE = LEADERBOARD_PAGE_SIZE;
 
 export const data = new SlashCommandBuilder()
     .setName('leaderboard')
@@ -76,7 +80,7 @@ async function buildLeaderboardEmbed(
                 rankDisplay,
                 isCaller ? `**${name}** ⭐` : `**${name}**`,
                 `┃ Niv. **${user.level}**`,
-                `• ${formatNumber(user.xpTotal)} XP`,
+                `• ${formatK(user.xpTotal)} XP`,
                 `\n${isCaller ? '> ' : '  '}${bar} \`${user.xpCurrent}/${user.xpNext}\``,
             ].join(' ');
 
@@ -162,7 +166,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         const collector = message.createMessageComponentCollector({
             componentType: ComponentType.Button,
             filter: (i) => i.user.id === interaction.user.id,
-            time: 120_000,
+            time: COLLECTOR_TIMEOUT_MS,
         });
 
         let currentPage = safePage;
@@ -211,7 +215,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             }
         });
     } catch (error) {
-        console.error('Erreur lors de la génération du leaderboard:', error);
+        logger.error({ error }, 'Leaderboard generation failed');
         await interaction.editReply('❌ Une erreur est survenue lors de la génération du classement.');
     }
 }

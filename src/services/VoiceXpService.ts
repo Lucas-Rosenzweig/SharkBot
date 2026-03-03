@@ -1,14 +1,16 @@
 import { Client, GuildMember, VoiceBasedChannel, GuildBasedChannel } from "discord.js";
 import { addXpToUser } from "../utils/addXpToUser";
 import { ConfigService } from "./ConfigService";
+import { createLogger } from "../utils/logger";
+import { VOICE_XP_INTERVAL_MS } from "../utils/constants";
 
-const VOICE_XP_INTERVAL_MS = 60_000; // 1 minute
+const logger = createLogger('VoiceXP');
 
 export class VoiceXpService {
     private static instance: VoiceXpService;
-    private intervals: Map<string, NodeJS.Timeout> = new Map(); // key: guildId:discordId
+    private intervals: Map<string, NodeJS.Timeout> = new Map();
 
-    private constructor() { }
+    private constructor() {}
 
     static getInstance(): VoiceXpService {
         if (!VoiceXpService.instance) {
@@ -27,7 +29,7 @@ export class VoiceXpService {
 
     startTracking(guildId: string, discordId: string, client: Client): void {
         const key = this.buildKey(guildId, discordId);
-        if (this.intervals.has(key)) return; // Already tracking
+        if (this.intervals.has(key)) return;
 
         const interval = setInterval(async () => {
             try {
@@ -39,39 +41,36 @@ export class VoiceXpService {
                     return;
                 }
 
-                // Vérifier que le membre n'est pas dans le channel AFK
                 if (guild.afkChannelId && member.voice.channelId === guild.afkChannelId) {
-                    return; // Pas d'XP dans le channel AFK, mais on continue de tracker
+                    return;
                 }
 
-                // Vérifier la config voiceXpRequireUnmuted
                 const configService = ConfigService.getInstance();
                 const config = await configService.getConfigForGuild(guildId);
 
                 if (config.voiceXpRequireUnmuted) {
                     if (member.voice.serverMute || member.voice.serverDeaf) {
-                        return; // Pas d'XP si mute/deaf serveur
+                        return;
                     }
                 }
 
-                // Vérifier qu'il y a au moins 2 humains non-bot dans le salon
                 const humanMembers = member.voice.channel.members.filter((m: GuildMember) => !m.user.bot);
                 if (humanMembers.size < 2) {
-                    return; // Pas d'XP seul
+                    return;
                 }
 
                 await addXpToUser(discordId, guildId, config.xpPerMinute, client, {
                     username: member.user.displayName,
                     avatarHash: member.user.avatar,
                 });
-                console.log(`[VoiceXP] Gave ${config.xpPerMinute} XP to ${member.user.tag} in guild ${guild.name}`);
+                logger.info({ xp: config.xpPerMinute, user: member.user.tag, guild: guild.name }, 'Gave voice XP');
             } catch (error) {
-                console.error(`[VoiceXP] Error giving XP to ${discordId} in guild ${guildId}:`, error);
+                logger.error({ error, discordId, guildId }, 'Error giving voice XP');
             }
         }, VOICE_XP_INTERVAL_MS);
 
         this.intervals.set(key, interval);
-        console.log(`[VoiceXP] Started tracking ${discordId} in guild ${guildId}`);
+        logger.info({ discordId, guildId }, 'Started tracking');
     }
 
     stopTracking(guildId: string, discordId: string): void {
@@ -80,37 +79,27 @@ export class VoiceXpService {
         if (interval) {
             clearInterval(interval);
             this.intervals.delete(key);
-            console.log(`[VoiceXP] Stopped tracking ${discordId} in guild ${guildId}`);
+            logger.info({ discordId, guildId }, 'Stopped tracking');
         }
     }
 
-    /**
-     * Réévalue tous les membres d'un salon vocal.
-     * Démarre le tracking pour ceux éligibles, stoppe pour ceux qui ne le sont plus.
-     */
     async refreshChannel(channel: VoiceBasedChannel, client: Client): Promise<void> {
         const guildId = channel.guild.id;
         const humanMembers = channel.members.filter((m: GuildMember) => !m.user.bot);
 
         if (humanMembers.size >= 2) {
-            // Au moins 2 humains : démarrer le tracking pour tous
             for (const [, member] of humanMembers) {
                 if (!this.isTracking(guildId, member.id)) {
                     this.startTracking(guildId, member.id, client);
                 }
             }
         } else {
-            // Moins de 2 humains : stopper le tracking pour tous les membres de ce salon
             for (const [, member] of humanMembers) {
                 this.stopTracking(guildId, member.id);
             }
         }
     }
 
-    /**
-     * Initialise le tracking pour tous les salons vocaux de toutes les guilds.
-     * Utilisé au démarrage du bot pour reprendre le tracking après un redémarrage.
-     */
     async initializeFromGuilds(client: Client): Promise<void> {
         const guilds = client.guilds.cache;
 
@@ -126,12 +115,6 @@ export class VoiceXpService {
             }
         }
 
-        console.log(`[VoiceXP] Initialized tracking for ${this.intervals.size} users across all guilds`);
+        logger.info({ count: this.intervals.size }, 'Initialized tracking for users across all guilds');
     }
 }
-
-
-
-
-
-

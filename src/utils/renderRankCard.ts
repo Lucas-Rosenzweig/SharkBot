@@ -1,4 +1,5 @@
 import { Resvg } from '@resvg/resvg-js';
+import { escapeXml, formatK, fetchAvatarBase64, truncateUsername } from './svgHelpers';
 
 export interface RankCardData {
   username: string;
@@ -26,17 +27,11 @@ export async function renderRankCard(data: RankCardData): Promise<Buffer> {
   // Avatar
   let avatarBase64 = '';
   if (avatarUrl) {
-    try {
-      const response = await fetch(avatarUrl);
-      const arrayBuffer = await response.arrayBuffer();
-      avatarBase64 = `data:image/png;base64,${Buffer.from(arrayBuffer).toString('base64')}`;
-    } catch (e) {
-      console.error("Erreur lors du chargement de l'avatar:", e);
-    }
+    avatarBase64 = await fetchAvatarBase64(avatarUrl);
   }
 
   const safeUsername = escapeXml(username);
-  const displayUsername = safeUsername.length > 16 ? safeUsername.substring(0, 14) + '…' : safeUsername;
+  const displayUsername = truncateUsername(safeUsername);
 
   // Avatar section
   const avatarSvg = avatarBase64
@@ -327,21 +322,3 @@ export async function renderRankCard(data: RankCardData): Promise<Buffer> {
   return resvg.render().asPng();
 }
 
-function escapeXml(str: string): string {
-  return str.replace(/[<>&"']/g, (c) => {
-    switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '"': return '&quot;';
-      case "'": return '&apos;';
-      default: return c;
-    }
-  });
-}
-
-function formatK(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num.toString();
-}

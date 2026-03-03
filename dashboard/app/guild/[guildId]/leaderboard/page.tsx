@@ -1,29 +1,6 @@
 import { apiFetch } from '@/lib/api';
+import type { UsersResponse } from '@/lib/types';
 import LeaderboardTable from '@/app/_components/LeaderboardTable';
-
-interface User {
-    id: number;
-    discordId: string;
-    guildId: string;
-    username: string | null;
-    avatarHash: string | null;
-    xpTotal: number;
-    xpCurrent: number;
-    xpNext: number;
-    level: number;
-}
-
-interface Pagination {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-}
-
-interface UsersResponse {
-    users: User[];
-    pagination: Pagination;
-}
 
 export default async function LeaderboardPage({
     params,

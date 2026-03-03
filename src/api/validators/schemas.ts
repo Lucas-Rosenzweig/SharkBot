@@ -11,6 +11,7 @@ export const updateConfigSchema = z.object({
     xpPerMinute: z.number().int().positive().optional(),
     xpChannelId: z.union([snowflake, z.literal(''), z.null()]).optional(),
     voiceXpRequireUnmuted: z.boolean().optional(),
+    levelUpMessage: z.union([z.string().max(2000), z.null()]).optional(),
 });
 
 // ── Level Roles (POST /api/guilds/:guildId/level-roles) ─────

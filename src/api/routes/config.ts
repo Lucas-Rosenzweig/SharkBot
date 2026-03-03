@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { ConfigService } from '../../services/ConfigService';
 import { validate, updateConfigSchema } from '../validators/schemas';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('API:Config');
 
 const router = Router({ mergeParams: true });
 
@@ -14,7 +17,7 @@ router.get('/', requireAuth, requireGuildAdmin, async (req: Request, res: Respon
         const config = await configService.getConfigForGuild(guildId);
         res.json(config);
     } catch (error) {
-        console.error('Error fetching config:', error);
+        logger.error({ error }, 'Error fetching config');
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
@@ -23,7 +26,7 @@ router.get('/', requireAuth, requireGuildAdmin, async (req: Request, res: Respon
 router.put('/', requireAuth, requireGuildAdmin, validate(updateConfigSchema), async (req: Request, res: Response) => {
     try {
         const guildId = req.params.guildId as string;
-        const { xpCooldown, xpPerMessage, xpPerMinute, xpChannelId, voiceXpRequireUnmuted } = req.body;
+        const { xpCooldown, xpPerMessage, xpPerMinute, xpChannelId, voiceXpRequireUnmuted, levelUpMessage } = req.body;
 
         const config = await configService.getConfigForGuild(guildId);
 
@@ -34,13 +37,14 @@ router.put('/', requireAuth, requireGuildAdmin, validate(updateConfigSchema), as
             xpPerMinute: xpPerMinute ?? config.xpPerMinute,
             xpChannelId: xpChannelId !== undefined ? (xpChannelId || undefined) : config.xpChannelId,
             voiceXpRequireUnmuted: voiceXpRequireUnmuted ?? config.voiceXpRequireUnmuted,
+            levelUpMessage: levelUpMessage !== undefined ? levelUpMessage : config.levelUpMessage,
         };
 
         await configService.setConfigForGuild(guildId, updatedConfig);
 
         res.json(updatedConfig);
     } catch (error) {
-        console.error('Error updating config:', error);
+        logger.error({ error }, 'Error updating config');
         res.status(500).json({ error: 'Erreur lors de la mise à jour de la configuration' });
     }
 });

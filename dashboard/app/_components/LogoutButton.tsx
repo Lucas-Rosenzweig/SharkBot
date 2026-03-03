@@ -4,6 +4,7 @@ import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import { toast } from 'sonner';
 
 export default function LogoutButton() {
     const router = useRouter();
@@ -12,8 +13,8 @@ export default function LogoutButton() {
         try {
             await fetch('/api/auth/logout', { method: 'POST', headers: csrfHeaders(), credentials: 'include' });
             window.location.href = '/login';
-        } catch (error) {
-            console.error('Error logging out:', error);
+        } catch {
+            toast.error('Erreur lors de la déconnexion.');
         }
     };
 

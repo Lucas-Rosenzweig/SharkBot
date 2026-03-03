@@ -1,4 +1,3 @@
-// typescript
 import 'dotenv/config';
 import { prisma } from './utils/prisma';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
@@ -6,10 +5,14 @@ import { loadCommands } from './utils/loadCommands';
 import { loadEvents } from './utils/loadEvents';
 import { loadContextMenus } from './utils/loadContextMenus';
 import { ReactionMapService } from './services/ReactionMapService';
-import {upsertGuilds} from "./utils/upsertGuilds";
-import {setupReactionMapListeners} from "./listeners/reactionMapListeners";
-import {setupLevelUpListeners} from "./listeners/levelUpListeners";
-import {startApiServer} from "./api/server";
+import { upsertGuilds } from './utils/upsertGuilds';
+import { setupReactionMapListeners } from './listeners/reactionMapListeners';
+import { setupLevelUpListeners } from './listeners/levelUpListeners';
+import { startApiServer } from './api/server';
+import { createLogger } from './utils/logger';
+import './type/discord';
+
+const logger = createLogger('Main');
 
 export const client = new Client({
     intents: [
@@ -33,23 +36,25 @@ setupLevelUpListeners(client);
 
 async function main() {
     await client.login(process.env.DISCORD_TOKEN);
-    await reactionMapState.load(); // Load reaction maps from the database
-    await upsertGuilds(client); // On est obligé d'attendre que le client soit prêt avant d'appeler cette fonction
-    startApiServer(client); // Start the dashboard API server
+    await reactionMapState.load();
+    await upsertGuilds(client);
+    startApiServer(client);
 }
 
 main().catch(async (err) => {
-    console.error('Startup error', err);
+    logger.fatal({ err }, 'Startup error');
     await prisma.$disconnect();
     process.exit(1);
 });
 
-// Gracefully disconnect Prisma on process termination
 process.on('SIGINT', async () => {
+    logger.info('Received SIGINT, shutting down');
     await prisma.$disconnect();
     process.exit(0);
 });
+
 process.on('SIGTERM', async () => {
+    logger.info('Received SIGTERM, shutting down');
     await prisma.$disconnect();
     process.exit(0);
 });
