@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ import { ConfirmDeleteModal } from '@/app/_components/ConfirmDeleteModal';
 import { Plus, Trash2, Loader2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { csrfHeaders } from '@/lib/csrf';
+import { useGuildEvents, type GuildEvent } from '@/lib/useGuildEvents';
 
 interface LevelRole {
     id: string;
@@ -49,6 +50,29 @@ export default function LevelRolesManager({
     const [adding, setAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+    // ── Real-time level roles sync via SSE ───────────────────
+    const handleLevelRoleCreate = useCallback((event: GuildEvent) => {
+        const data = event.data as LevelRole;
+        setLevelRoles((prev) => {
+            // Avoid duplicates
+            if (prev.some((lr) => lr.id === data.id)) return prev;
+            return [...prev, data];
+        });
+    }, []);
+
+    const handleLevelRoleDelete = useCallback((event: GuildEvent) => {
+        const data = event.data as { id: string };
+        setLevelRoles((prev) => prev.filter((lr) => lr.id !== data.id));
+    }, []);
+
+    useGuildEvents({
+        guildId,
+        onEvent: {
+            'level-roles:create': handleLevelRoleCreate,
+            'level-roles:delete': handleLevelRoleDelete,
+        },
+    });
 
     const handleEdit = (lr: LevelRole) => {
         setEditingId(lr.id);

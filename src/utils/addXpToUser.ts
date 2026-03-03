@@ -1,5 +1,6 @@
 import { Client } from "discord.js";
 import { prisma } from "./prisma";
+import { eventBus } from "../services/EventBus";
 
 export function getXpForNextLevel(level: number): number {
     return 5 * (level ** 2) + 50 * level + 100;
@@ -38,6 +39,14 @@ export async function addXpToUser(
         newLevel += 1;
         xpForNextLevel = getXpForNextLevel(newLevel);
         client.emit('levelUp', user, newLevel);
+
+        // Emit level:up event for SSE
+        eventBus.emitGuildEvent('level:up', guildId, {
+            discordId,
+            guildId,
+            newLevel,
+            username: profile?.username ?? user.username,
+        });
     }
 
     await prisma.user.update({
@@ -48,6 +57,17 @@ export async function addXpToUser(
             xpCurrent: newXpCurrent,
             xpNext: getXpForNextLevel(newLevel),
         },
+    });
+
+    // Emit xp:update event for SSE
+    eventBus.emitGuildEvent('xp:update', guildId, {
+        discordId,
+        guildId,
+        xpTotal: newXpTotal,
+        xpCurrent: newXpCurrent,
+        xpNext: getXpForNextLevel(newLevel),
+        level: newLevel,
+        username: profile?.username ?? user.username,
     });
 }
 

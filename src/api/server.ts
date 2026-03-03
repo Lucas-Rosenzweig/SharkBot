@@ -18,6 +18,7 @@ import levelRolesRouter from './routes/levelRoles';
 import usersRouter from './routes/users';
 import { createGuildsRouter } from './routes/guilds';
 import { createReactionRolesRouter } from './routes/reactionRoles';
+import eventsRouter from './routes/events';
 
 const logger = createLogger('API');
 
@@ -145,6 +146,9 @@ export function startApiServer(client: Client): void {
 
     // Routes
     app.use('/api/auth', authRouter);
+
+    // ── SSE events route (before CSRF, GET-only) ──────────────
+    app.use('/api/guilds/:guildId/events', eventsRouter);
 
     // ── CSRF protection ──────────────────────────────────────
     app.get('/api/csrf-token', (req, res) => {

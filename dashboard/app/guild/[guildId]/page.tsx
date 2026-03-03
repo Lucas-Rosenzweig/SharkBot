@@ -1,9 +1,10 @@
 import { apiFetch } from '@/lib/api';
 import type { Config, UsersResponse } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Settings, Award, Activity, Zap, ArrowRight } from 'lucide-react';
+import { Settings, Award, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import GuildOverviewStats from '@/app/_components/GuildOverviewStats';
 
 
 export default async function GuildPage({
@@ -20,7 +21,6 @@ export default async function GuildPage({
     ]);
 
     const totalUsers = usersData?.pagination?.total || 0;
-    const isConfigured = !!config;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -33,49 +33,11 @@ export default async function GuildPage({
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Stats Card: Users */}
-                <Card className="bg-card/40 backdrop-blur-md border-border/50 hover:bg-card/60 transition-all duration-300 group shadow-lg hover:shadow-primary/5">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Utisateurs Actifs</CardTitle>
-                        <Users className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-foreground">{totalUsers}</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Membres ayant de l'XP
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Stats Card: XP Rate */}
-                <Card className="bg-card/40 backdrop-blur-md border-border/50 hover:bg-card/60 transition-all duration-300 group shadow-lg hover:shadow-primary/5">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Taux d'XP</CardTitle>
-                        <Zap className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-foreground">{config?.xpPerMessage || 0} <span className="text-lg text-muted-foreground font-normal">/ msg</span></div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Cooldown: {config?.xpCooldown || 0}s
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Stats Card: Status */}
-                <Card className="bg-card/40 backdrop-blur-md border-border/50 hover:bg-card/60 transition-all duration-300 group shadow-lg hover:shadow-primary/5">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">État du Bot</CardTitle>
-                        <Activity className="w-4 h-4 text-primary animate-pulse" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-primary">En Ligne</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Système opérationnel
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
+            <GuildOverviewStats
+                guildId={guildId}
+                initialTotalUsers={totalUsers}
+                initialConfig={config}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                 {/* Highlight Feature: Config */}

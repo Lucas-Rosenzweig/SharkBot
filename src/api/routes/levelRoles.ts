@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { prisma } from '../../utils/prisma';
+import { eventBus } from '../../services/EventBus';
 import { validate, createLevelRoleSchema } from '../validators/schemas';
 import { createLogger } from '../../utils/logger';
 
@@ -48,6 +49,8 @@ router.post('/', requireAuth, requireGuildAdmin, validate(createLevelRoleSchema)
             },
         });
 
+        eventBus.emitGuildEvent('level-roles:create', guildId, levelRole);
+
         res.status(201).json(levelRole);
     } catch (error) {
         logger.error({ error }, 'Error creating level role');
@@ -62,6 +65,8 @@ router.delete('/:id', requireAuth, requireGuildAdmin, async (req: Request, res: 
         await prisma.levelRole.delete({
             where: { id },
         });
+        const guildId = req.params.guildId as string;
+        eventBus.emitGuildEvent('level-roles:delete', guildId, { id });
         res.json({ success: true });
     } catch (error) {
         logger.error({ error }, 'Error deleting level role');

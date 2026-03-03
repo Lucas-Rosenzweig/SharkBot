@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { Client, ChannelType } from 'discord.js';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { ReactionMapService } from '../../services/ReactionMapService';
+import { eventBus } from '../../services/EventBus';
 import { prisma } from '../../utils/prisma';
 import { validate, createReactionRoleSchema } from '../validators/schemas';
 import { createLogger } from '../../utils/logger';
@@ -71,6 +72,7 @@ export function createReactionRolesRouter(client: Client): Router {
             });
 
             res.status(201).json({ success: true, messageId, emoji, roleId });
+            eventBus.emitGuildEvent('reaction-roles:create', guildId, { messageId, emoji, roleId });
         } catch (error) {
             logger.error({ error }, 'Error creating reaction role');
             const msg = error instanceof Error ? error.message : 'Erreur lors de la création du rôle de réaction';
@@ -129,6 +131,8 @@ export function createReactionRolesRouter(client: Client): Router {
             await prisma.reactionMap.delete({ where: { id } });
             // Reload reaction maps
             await reactionMapService.load();
+
+            eventBus.emitGuildEvent('reaction-roles:delete', guildId, { id });
 
             res.json({ success: true });
         } catch (error) {

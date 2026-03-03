@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { prisma } from '../../utils/prisma';
+import { eventBus } from '../../services/EventBus';
 import { getXpForNextLevel } from '../../utils/addXpToUser';
 import { validate, updateUserSchema } from '../validators/schemas';
 import { createLogger } from '../../utils/logger';
@@ -91,6 +92,8 @@ router.put('/:discordId', requireAuth, requireGuildAdmin, validate(updateUserSch
             },
             select: { id: true, discordId: true, guildId: true, username: true, avatarHash: true, xpTotal: true, xpCurrent: true, xpNext: true, level: true },
         });
+
+        eventBus.emitGuildEvent('user:update', guildId, updated);
 
         res.json(updated);
     } catch (error) {

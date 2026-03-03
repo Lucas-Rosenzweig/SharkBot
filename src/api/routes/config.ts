@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, requireGuildAdmin } from '../middleware/auth';
 import { ConfigService } from '../../services/ConfigService';
+import { eventBus } from '../../services/EventBus';
 import { validate, updateConfigSchema } from '../validators/schemas';
 import { createLogger } from '../../utils/logger';
 
@@ -41,6 +42,8 @@ router.put('/', requireAuth, requireGuildAdmin, validate(updateConfigSchema), as
         };
 
         await configService.setConfigForGuild(guildId, updatedConfig);
+
+        eventBus.emitGuildEvent('config:update', guildId, updatedConfig);
 
         res.json(updatedConfig);
     } catch (error) {

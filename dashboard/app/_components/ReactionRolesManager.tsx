@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ import { ConfirmDeleteModal } from '@/app/_components/ConfirmDeleteModal';
 import { Plus, Trash2, Loader2, AlertCircle, ShieldAlert, Sparkles, Check, X, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { csrfHeaders } from '@/lib/csrf';
+import { useGuildEvents, type GuildEvent } from '@/lib/useGuildEvents';
 
 const STANDARD_EMOJIS = [
     // Smileys & Émotions
@@ -88,6 +89,35 @@ export default function ReactionRolesManager({
     const [removeOnUnreact, setRemoveOnUnreact] = useState(true);
     const [adding, setAdding] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+    // ── Real-time reaction roles sync via SSE ────────────────
+    const handleReactionRoleCreate = useCallback((event: GuildEvent) => {
+        // Reload from server since the event data may be partial
+        const fetchReactionRoles = async () => {
+            try {
+                const res = await fetch(`/api/guilds/${guildId}/reaction-roles`, { credentials: 'include' });
+                if (res.ok) {
+                    setReactionRoles(await res.json());
+                }
+            } catch {
+                // Ignore
+            }
+        };
+        fetchReactionRoles();
+    }, [guildId]);
+
+    const handleReactionRoleDelete = useCallback((event: GuildEvent) => {
+        const data = event.data as { id: string };
+        setReactionRoles((prev) => prev.filter((rr) => rr.id !== data.id));
+    }, []);
+
+    useGuildEvents({
+        guildId,
+        onEvent: {
+            'reaction-roles:create': handleReactionRoleCreate,
+            'reaction-roles:delete': handleReactionRoleDelete,
+        },
+    });
 
     const [channels, setChannels] = useState<Channel[]>([]);
     const [selectedChannelId, setSelectedChannelId] = useState<string>('');

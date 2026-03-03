@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
     Table,
     TableBody,
@@ -17,6 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { Check, X, Pencil, Loader2, ChevronLeft, ChevronRight, Crown, Trophy } from 'lucide-react';
 import { csrfHeaders } from '@/lib/csrf';
 import { toast } from 'sonner';
+import { useGuildEvents, type GuildEvent } from '@/lib/useGuildEvents';
 
 interface User {
     id: number;
@@ -54,6 +55,35 @@ export default function LeaderboardTable({
     const [editLevel, setEditLevel] = useState(0);
     const [editXp, setEditXp] = useState(0);
     const [saving, setSaving] = useState(false);
+
+    // ── Real-time updates via SSE ────────────────────────────
+    const handleXpUpdate = useCallback((event: GuildEvent) => {
+        const data = event.data as User;
+        setUsers((prev) =>
+            prev.map((u) => (u.discordId === data.discordId ? { ...u, ...data } : u)),
+        );
+    }, []);
+
+    const handleUserUpdate = useCallback((event: GuildEvent) => {
+        const data = event.data as User;
+        setUsers((prev) =>
+            prev.map((u) => (u.discordId === data.discordId ? { ...u, ...data } : u)),
+        );
+    }, []);
+
+    const handleLevelUp = useCallback((event: GuildEvent) => {
+        const data = event.data as { discordId: string; newLevel: number; username?: string | null };
+        toast.info(`🎉 ${data.username || data.discordId} a atteint le niveau ${data.newLevel} !`);
+    }, []);
+
+    useGuildEvents({
+        guildId,
+        onEvent: {
+            'xp:update': handleXpUpdate,
+            'user:update': handleUserUpdate,
+            'level:up': handleLevelUp,
+        },
+    });
 
     const fetchPage = async (newPage: number) => {
         setLoading(true);

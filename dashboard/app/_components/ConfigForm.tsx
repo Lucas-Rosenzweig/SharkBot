@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { Config, Channel } from '@/lib/types';
 import { DEFAULT_LEVEL_UP_MESSAGE } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Save, Loader2, Timer, MessageSquare, Mic, Bell, MicOff, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import { csrfHeaders } from '@/lib/csrf';
+import { useGuildEvents, type GuildEvent } from '@/lib/useGuildEvents';
 
 
 export default function ConfigForm({
@@ -26,6 +27,20 @@ export default function ConfigForm({
 }) {
     const [config, setConfig] = useState<Config>(initialConfig);
     const [saving, setSaving] = useState(false);
+
+    // ── Real-time config sync via SSE ────────────────────────
+    const handleConfigUpdate = useCallback((event: GuildEvent) => {
+        const data = event.data as Config;
+        setConfig(data);
+        toast.info('La configuration a été mise à jour par un autre administrateur.');
+    }, []);
+
+    useGuildEvents({
+        guildId,
+        onEvent: {
+            'config:update': handleConfigUpdate,
+        },
+    });
 
 
     const previewLevelUpMessage = useMemo(() => {
