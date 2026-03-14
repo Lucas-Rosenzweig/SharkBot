@@ -1,0 +1,84 @@
+# ============================================================
+# docker-compose.coolify.yml — Version unifiée pour Coolify
+# ============================================================
+# Ce fichier combine docker-compose.yml et docker-compose.prod.yml
+# en un seul fichier compatible avec Coolify.
+# ============================================================
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shark}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-sharkbot}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - shark-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shark} -d ${POSTGRES_DB:-sharkbot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Bot Discord + API Backend ───────────────────────────────
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-shark}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sharkbot}?schema=public
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?DISCORD_TOKEN is required}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID is required}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?DISCORD_CLIENT_SECRET is required}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      # API_URL et DASHBOARD_URL peuvent être définies via les variables d'environnement Coolify
+      API_URL: ${API_URL:-http://bot:3001}
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://dashboard:3000}
+      API_PORT: 3001
+    networks:
+      - shark-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Dashboard Next.js ───────────────────────────────────────
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - bot
+    environment:
+      NODE_ENV: production
+      API_URL: http://bot:3001
+    networks:
+      - shark-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  db-data:
+
+networks:
+  shark-net:
+    driver: bridge
