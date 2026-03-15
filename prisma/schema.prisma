@@ -42,7 +42,7 @@ model Config {
 model User {
   id        Int    @id @default(autoincrement())
   guildId   String
-  discordId String @unique
+  discordId String
 
   username   String? // Cached Discord username (updated on each XP event)
   avatarHash String? // Cached Discord avatar hash
@@ -56,7 +56,7 @@ model User {
 
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@index([guildId, discordId])
+  @@unique([guildId, discordId])
   @@index([guildId, xpTotal(sort: Desc)]) // Leaderboard query: WHERE guildId ORDER BY xpTotal DESC
 }
 

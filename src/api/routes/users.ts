@@ -83,7 +83,7 @@ router.put('/:discordId', requireAuth, requireGuildAdmin, validate(updateUserSch
         }
 
         const updated = await prisma.user.update({
-            where: { discordId },
+            where: { guildId_discordId: { guildId, discordId } },
             data: {
                 level: newLevel,
                 xpTotal: newXpTotal,

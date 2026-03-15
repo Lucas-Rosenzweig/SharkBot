@@ -23,7 +23,7 @@ export async function addXpToUser(
     } : {};
 
     const user = await prisma.user.upsert({
-        where: { discordId },
+        where: { guildId_discordId: { guildId, discordId } },
         create: { discordId, guildId, ...profileData },
         update: { ...profileData },
     });
@@ -50,7 +50,7 @@ export async function addXpToUser(
     }
 
     await prisma.user.update({
-        where: { discordId },
+        where: { guildId_discordId: { guildId, discordId } },
         data: {
             level: newLevel,
             xpTotal: newXpTotal,

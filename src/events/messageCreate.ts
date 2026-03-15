@@ -22,7 +22,7 @@ export async function execute(message: Message) {
         };
 
         const user = await prisma.user.upsert({
-            where: { discordId: message.author.id },
+            where: { guildId_discordId: { guildId: message.guild.id, discordId: message.author.id } },
             create: { discordId: message.author.id, guildId: message.guild.id, ...profile },
             update: { ...profile },
         });
@@ -37,7 +37,7 @@ export async function execute(message: Message) {
 
             // Mise à jour du timestamp du dernier message
             await prisma.user.update({
-                where: { discordId: message.author.id },
+                where: { guildId_discordId: { guildId: message.guild.id, discordId: message.author.id } },
                 data: { lastMessage: new Date(now) },
             });
 
