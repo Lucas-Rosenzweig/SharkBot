@@ -35,6 +35,13 @@ export class ConfigService {
     }
 
     async getConfigForGuild(guildId: string): Promise<Config> {
+        // Ensure the Guild row exists before upserting Config (FK constraint)
+        await prisma.guild.upsert({
+            where: { id: guildId },
+            update: {},
+            create: { id: guildId },
+        });
+
         const config = await prisma.config.upsert({
             where: { guildId },
             update: {},
@@ -45,6 +52,12 @@ export class ConfigService {
     }
 
     async setConfigForGuild(guildId: string, config: Config): Promise<void> {
+        await prisma.guild.upsert({
+            where: { id: guildId },
+            update: {},
+            create: { id: guildId },
+        });
+
         await prisma.config.upsert({
             where: { guildId },
             update: {
@@ -73,6 +86,12 @@ export class ConfigService {
      * Avoids repetitive per-field setter methods.
      */
     private async upsertField(guildId: string, field: string, value: unknown): Promise<void> {
+        await prisma.guild.upsert({
+            where: { id: guildId },
+            update: {},
+            create: { id: guildId },
+        });
+
         await prisma.config.upsert({
             where: { guildId },
             update: { [field]: value },
