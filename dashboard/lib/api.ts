@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 
-const API_BASE = process.env.API_URL || 'http://bot:3001';
+const API_BASE = process.env.INTERNAL_API_URL || 'http://bot:3001';
 
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
     const cookieStore = await cookies();

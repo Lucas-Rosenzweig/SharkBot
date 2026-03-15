@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
         return [
             {
                 source: '/api/:path*',
-                destination: `${process.env.API_URL || 'http://localhost:3001'}/api/:path*`,
+                destination: `${process.env.INTERNAL_API_URL || 'http://bot:3001'}/api/:path*`,
             },
         ];
     },

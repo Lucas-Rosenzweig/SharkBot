@@ -48,15 +48,8 @@ export function startApiServer(client: Client): void {
         },
     }));
 
-    // ── HTTPS redirect in production ─────────────────────────
-    if (isProduction) {
-        app.use((req, res, next) => {
-            if (req.headers['x-forwarded-proto'] !== 'https') {
-                return res.redirect(301, `https://${req.headers.host}${req.url}`);
-            }
-            next();
-        });
-    }
+    // ── Trust Proxy for Rate Limiting & Next.js Rewrites ─────
+    app.set('trust proxy', 1);
 
     // ── Rate limiting (global) ───────────────────────────────
     app.use(rateLimit({
