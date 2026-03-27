@@ -6,6 +6,7 @@ import { loadEvents } from './utils/loadEvents';
 import { loadContextMenus } from './utils/loadContextMenus';
 import { ReactionMapService } from './services/ReactionMapService';
 import { upsertGuilds } from './utils/upsertGuilds';
+import { importLegacyXp } from './scripts/importLegacyXp';
 import { setupReactionMapListeners } from './listeners/reactionMapListeners';
 import { setupLevelUpListeners } from './listeners/levelUpListeners';
 import { startApiServer } from './api/server';
@@ -38,6 +39,7 @@ async function main() {
     await client.login(process.env.DISCORD_TOKEN);
     await reactionMapState.load();
     await upsertGuilds(client);
+    await importLegacyXp(client);
     startApiServer(client);
 }
 
