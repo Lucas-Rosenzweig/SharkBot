@@ -86,8 +86,16 @@ export async function importLegacyXp(client: Client): Promise<void> {
         let discordId = entry.discordId;
         let resolvedUsername = entry.name;
 
-        // ── Résolution par username si pas d'ID direct ──────────────────────
-        if (!discordId) {
+        // ── Résolution du discordId ET du vrai username ─────────────────────
+        if (discordId) {
+            // On a l'ID : on cherche le membre pour récupérer son vrai username
+            const member = members.get(discordId);
+            if (member) {
+                resolvedUsername = member.user.username;
+            }
+            // Si le membre n'est plus dans le serveur, on garde le nom legacy
+            logger.info({ name: entry.name, discordId, resolvedUsername }, 'Utilisateur avec ID direct');
+        } else {
             const searchTerm = cleanUsername(entry.name);
 
             // 1ère tentative : via Discord API (guild.members.fetch)
@@ -103,8 +111,6 @@ export async function importLegacyXp(client: Client): Promise<void> {
                 logger.info({ name: entry.name, discordId, resolvedUsername }, 'Utilisateur résolu (Discord API)');
             } else {
                 // 2ème tentative : fallback via la table User en DB
-                // Couvre les users déjà actifs sur le nouveau bot (entrée DB existante)
-                // même si guild.members.fetch() ne les a pas retournés.
                 const dbMatch = await prisma.user.findFirst({
                     where: {
                         guildId,
