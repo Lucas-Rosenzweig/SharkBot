@@ -105,17 +105,7 @@ export async function importLegacyXp(client: Client): Promise<void> {
         }
 
         // ── Upsert dans la DB ─────────────────────────────────────────────────
-        // On écrase uniquement si les valeurs legacy sont supérieures (protection contre une double run).
-        const existing = await prisma.user.findUnique({
-            where: { guildId_discordId: { guildId, discordId } },
-        });
-
-        if (existing && existing.xpTotal >= entry.xp) {
-            logger.info({ discordId, resolvedUsername }, 'Données existantes déjà >= legacy, ignoré');
-            skipped++;
-            continue;
-        }
-
+        // Migration one-shot : on écrase toujours avec les données legacy.
         const xpNext = getXpForNextLevel(entry.level);
 
         await prisma.user.upsert({
