@@ -58,17 +58,20 @@ export async function importLegacyXp(client: Client): Promise<void> {
 
     logger.info('Démarrage de l\'import XP legacy...');
 
-    // ── Récupération de tous les guilds du bot ────────────────────────────────
-    const guilds = await client.guilds.fetch();
-    if (guilds.size === 0) {
-        logger.warn('Aucun guild trouvé, import annulé.');
+    // ── Sélection du guild cible ──────────────────────────────────────────────
+    // On utilise LEGACY_XP_GUILD_ID pour cibler le bon serveur explicitement.
+    const guildId = process.env.LEGACY_XP_GUILD_ID;
+    if (!guildId) {
+        logger.error('Variable LEGACY_XP_GUILD_ID manquante ! Ajoutez-la dans les env vars Coolify.');
         return;
     }
 
-    // On prend le premier guild (bot mono-serveur). 
-    // Si ton bot est multi-serveur, adapte ici avec l'ID du bon serveur.
-    const [guildId] = [...guilds.keys()];
-    const guild = await client.guilds.fetch(guildId);
+    const guild = await client.guilds.fetch(guildId).catch(() => null);
+    if (!guild) {
+        logger.error({ guildId }, 'Guild introuvable. Vérifiez que le bot est bien dans ce serveur.');
+        return;
+    }
+
 
     logger.info({ guildId, guildName: guild.name }, 'Guild cible pour l\'import');
 
@@ -87,21 +90,38 @@ export async function importLegacyXp(client: Client): Promise<void> {
         if (!discordId) {
             const searchTerm = cleanUsername(entry.name);
 
-            const match = members.find(m =>
+            // 1ère tentative : via Discord API (guild.members.fetch)
+            const discordMatch = members.find(m =>
                 m.user.username.toLowerCase().includes(searchTerm) ||
                 (m.user.globalName?.toLowerCase().includes(searchTerm) ?? false) ||
                 (m.nickname?.toLowerCase().includes(searchTerm) ?? false)
             );
 
-            if (!match) {
-                logger.warn({ name: entry.name }, 'Utilisateur introuvable sur le serveur, ignoré');
-                skipped++;
-                continue;
-            }
+            if (discordMatch) {
+                discordId = discordMatch.user.id;
+                resolvedUsername = discordMatch.user.username;
+                logger.info({ name: entry.name, discordId, resolvedUsername }, 'Utilisateur résolu (Discord API)');
+            } else {
+                // 2ème tentative : fallback via la table User en DB
+                // Couvre les users déjà actifs sur le nouveau bot (entrée DB existante)
+                // même si guild.members.fetch() ne les a pas retournés.
+                const dbMatch = await prisma.user.findFirst({
+                    where: {
+                        guildId,
+                        username: { contains: searchTerm, mode: 'insensitive' },
+                    },
+                });
 
-            discordId = match.user.id;
-            resolvedUsername = match.user.username;
-            logger.info({ name: entry.name, discordId, resolvedUsername }, 'Utilisateur résolu');
+                if (dbMatch) {
+                    discordId = dbMatch.discordId;
+                    resolvedUsername = dbMatch.username ?? entry.name;
+                    logger.info({ name: entry.name, discordId, resolvedUsername }, 'Utilisateur résolu (DB fallback)');
+                } else {
+                    logger.warn({ name: entry.name }, 'Utilisateur introuvable (Discord + DB), ignoré');
+                    skipped++;
+                    continue;
+                }
+            }
         }
 
         // ── Upsert dans la DB ─────────────────────────────────────────────────
