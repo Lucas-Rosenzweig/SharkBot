@@ -6,4 +6,9 @@ generated
 *.md
 dashboard/node_modules
 dashboard/dist
-
+dashboard/.next
+.agents
+tests
+.idea
+*.log
+.DS_Store
