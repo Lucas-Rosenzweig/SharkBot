@@ -3,7 +3,8 @@ import { prisma } from "./prisma";
 import { eventBus } from "../services/EventBus";
 
 export function getXpForNextLevel(level: number): number {
-    return 5 * (level ** 2) + 50 * level + 100;
+    const n = level + 1; // n = next level
+    return 5 * (n ** 2) + 50 * n + 100;
 }
 
 /**
